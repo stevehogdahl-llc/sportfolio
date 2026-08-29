@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { leagueLabel } from '@/constants/theme';
+import { tabLabel } from '@/constants/theme';
 import {
   SettingsLink,
   SettingsSection,
@@ -23,9 +23,10 @@ const DENSITY_OPTIONS = [
 ] as const;
 
 const OPEN_TO_OPTIONS = [
-  { value: 'last', label: 'Last viewed' },
+  { value: 'last', label: 'Last' },
   { value: 'mlb', label: 'MLB' },
   { value: 'nfl', label: 'NFL' },
+  { value: 'favorites', label: 'Favorites' },
 ] as const;
 
 export default function SettingsHub() {
@@ -36,11 +37,17 @@ export default function SettingsHub() {
   const cardDensity = useSettingsStore((s) => s.cardDensity);
   const showRecords = useSettingsStore((s) => s.showRecords);
   const openTo = useSettingsStore((s) => s.openTo);
-  const leagues = useSettingsStore((s) => s.leagues);
+  const tabs = useSettingsStore((s) => s.tabs);
+  const favoritesCount = useSettingsStore((s) => s.favorites.length);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const setCardDensity = useSettingsStore((s) => s.setCardDensity);
   const setShowRecords = useSettingsStore((s) => s.setShowRecords);
   const setOpenTo = useSettingsStore((s) => s.setOpenTo);
+
+  // Only offer "Favorites" as a landing tab while that tab is enabled.
+  const openToOptions = tabs.includes('favorites')
+    ? OPEN_TO_OPTIONS
+    : OPEN_TO_OPTIONS.filter((o) => o.value !== 'favorites');
 
   return (
     <ScrollView
@@ -71,14 +78,19 @@ export default function SettingsHub() {
       <SettingsSection title="Scoreboard">
         <SettingsSegmented
           label="Open to"
-          options={OPEN_TO_OPTIONS}
+          options={openToOptions}
           value={openTo}
           onChange={setOpenTo}
         />
         <SettingsLink
-          label="Leagues"
-          value={leagues.map((l) => leagueLabel[l]).join(', ')}
+          label="Tabs"
+          value={tabs.map((t) => tabLabel[t]).join(', ')}
           onPress={() => router.push('/settings/leagues')}
+        />
+        <SettingsLink
+          label="Favorite teams"
+          value={favoritesCount > 0 ? String(favoritesCount) : 'None'}
+          onPress={() => router.push('/settings/favorites')}
         />
       </SettingsSection>
 
