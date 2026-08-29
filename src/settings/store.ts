@@ -9,14 +9,13 @@ import {
   ALL_TABS,
   isLeagueTab,
   type CardDensity,
+  type NotificationCategory,
   type NotificationSettings,
   type OpenTo,
   type Settings,
   type TabKey,
   type ThemePref,
 } from './types';
-
-type NotificationCategory = keyof NotificationSettings['categories'];
 
 interface SettingsActions {
   setTheme: (theme: ThemePref) => void;

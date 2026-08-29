@@ -11,6 +11,7 @@ export type { DensityTokens } from './density';
 export { useSettingsHydrated, useSettingsStore } from './store';
 export type {
   CardDensity,
+  NotificationCategory,
   NotificationSettings,
   OpenTo,
   Settings,

@@ -12,6 +12,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { usePalette } from '@/constants/theme';
+import { NotificationsProvider } from '@/notifications';
 import { queryClient } from '@/query';
 import { useSettingsHydrated, useTheme } from '@/settings';
 import { appFonts } from '@/theme/fonts';
@@ -57,6 +58,7 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <View style={{ flex: 1, backgroundColor: palette.background }}>
             <StatusBar style="auto" />
+            <NotificationsProvider />
             <Stack
               screenOptions={{
                 headerStyle: { backgroundColor: palette.background },
@@ -79,6 +81,7 @@ export default function RootLayout() {
               <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
               <Stack.Screen name="settings/leagues" options={{ title: 'Tabs' }} />
               <Stack.Screen name="settings/favorites" options={{ title: 'Favorite Teams' }} />
+              <Stack.Screen name="settings/notifications" options={{ title: 'Notifications' }} />
               <Stack.Screen name="settings/about" options={{ title: 'About' }} />
             </Stack>
           </View>

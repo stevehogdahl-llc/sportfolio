@@ -13,18 +13,22 @@ export function isLeagueTab(tab: TabKey): tab is League {
   return tab === 'mlb' || tab === 'nfl';
 }
 
+export interface NotificationCategories {
+  gameStart: boolean;
+  finalScore: boolean;
+  leadChange: boolean;
+  scoringPlay: boolean;
+  closeGame: boolean;
+}
+
+export type NotificationCategory = keyof NotificationCategories;
+
 export interface NotificationSettings {
   /** Master switch; also gated by the OS permission. */
   enabled: boolean;
   /** 'all' is further filtered by the enabled leagues in `Settings.tabs`. */
   scope: 'favorites' | 'all';
-  categories: {
-    gameStart: boolean;
-    finalScore: boolean;
-    leadChange: boolean;
-    scoringPlay: boolean;
-    closeGame: boolean;
-  };
+  categories: NotificationCategories;
 }
 
 export interface Settings {

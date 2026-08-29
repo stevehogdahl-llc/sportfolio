@@ -39,6 +39,7 @@ export default function SettingsHub() {
   const openTo = useSettingsStore((s) => s.openTo);
   const tabs = useSettingsStore((s) => s.tabs);
   const favoritesCount = useSettingsStore((s) => s.favorites.length);
+  const notificationsOn = useSettingsStore((s) => s.notifications.enabled);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const setCardDensity = useSettingsStore((s) => s.setCardDensity);
   const setShowRecords = useSettingsStore((s) => s.setShowRecords);
@@ -91,6 +92,11 @@ export default function SettingsHub() {
           label="Favorite teams"
           value={favoritesCount > 0 ? String(favoritesCount) : 'None'}
           onPress={() => router.push('/settings/favorites')}
+        />
+        <SettingsLink
+          label="Notifications"
+          value={notificationsOn ? 'On' : 'Off'}
+          onPress={() => router.push('/settings/notifications')}
         />
       </SettingsSection>
 
