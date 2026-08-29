@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Light theme — R G B channel triples so Tailwind's `/ <alpha-value>` works.
+     Mirrored as hex in src/constants/theme.ts for imperative (non-className) use. */
+  :root {
+    --color-background: 246 247 249;
+    --color-surface: 255 255 255;
+    --color-surface-2: 238 240 244;
+    --color-line: 217 222 230;
+    --color-ink: 20 24 31;
+    --color-ink-dim: 91 100 114;
+    --color-ink-faint: 138 147 162;
+    --color-mlb: 176 118 26;
+    --color-nfl: 31 127 192;
+    --color-live: 200 45 41;
+  }
+
+  /* Dark theme — the original palette. Applied whenever the resolved color
+     scheme is dark (system default or an explicit Dark choice). */
+  .dark:root {
+    --color-background: 14 17 23;
+    --color-surface: 23 28 38;
+    --color-surface-2: 31 37 48;
+    --color-line: 42 48 64;
+    --color-ink: 238 241 246;
+    --color-ink-dim: 139 147 166;
+    --color-ink-faint: 86 94 112;
+    --color-mlb: 224 168 62;
+    --color-nfl: 79 168 224;
+    --color-live: 229 72 77;
+  }
+}
