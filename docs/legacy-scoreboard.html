@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Scoreboard — MLB &amp; NFL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e1117;
+    --surface:#171c26;
+    --surface-2:#1f2530;
+    --border:#2a3040;
+    --text:#eef1f6;
+    --text-dim:#8b93a6;
+    --text-faint:#565e70;
+    --mlb:#e0a83e;
+    --nfl:#4fa8e0;
+    --live:#e5484d;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  header.site-header{
+    position:sticky; top:0; z-index:10;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 24px;
+    background:rgba(14,17,23,.86);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+    flex-wrap:wrap;
+  }
+  .brand{
+    font-family:'Oswald',sans-serif; font-weight:700;
+    letter-spacing:.08em; text-transform:uppercase;
+    font-size:1.15rem; display:flex; align-items:center; gap:10px;
+  }
+  .brand .tally{
+    width:8px; height:8px; border-radius:50%;
+    background:var(--live);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+  .meta{
+    display:flex; align-items:center; gap:16px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.78rem; color:var(--text-dim);
+  }
+  #clock{color:var(--text); font-weight:500; font-variant-numeric:tabular-nums;}
+  #refresh-btn{
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    width:30px; height:30px; border-radius:7px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #refresh-btn:hover{background:var(--border);}
+  #refresh-btn:focus-visible{outline:2px solid var(--nfl); outline-offset:2px;}
+  #refresh-btn svg{width:15px; height:15px;}
+  #refresh-btn.spinning svg{animation:spin .6s linear;}
+  @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+  main.board{
+    max-width:1180px; margin:0 auto; padding:26px 24px 60px;
+    display:grid; grid-template-columns:1fr; gap:30px;
+  }
+  @media(min-width:860px){
+    main.board{grid-template-columns:1fr 1fr; align-items:start;}
+  }
+
+  .column-header{
+    display:flex; align-items:center; gap:10px;
+    margin-bottom:14px; padding-bottom:10px;
+    border-bottom:2px solid var(--col-accent);
+  }
+  .league-icon{width:22px; height:22px; color:var(--col-accent); flex-shrink:0;}
+  .column-header h2{
+    font-family:'Oswald',sans-serif; text-transform:uppercase;
+    letter-spacing:.09em; font-size:1.05rem; margin:0; font-weight:700;
+  }
+  .column-header span.sub{
+    color:var(--text-faint); font-size:.72rem; font-weight:500;
+    text-transform:none; letter-spacing:0; margin-left:2px;
+  }
+
+  .game-card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:14px 16px; margin-bottom:12px;
+    position:relative; overflow:hidden;
+  }
+  .game-card.live{border-color:var(--live);}
+  .game-card.live::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(100deg, transparent, rgba(229,72,77,.10), transparent);
+    animation:sweep 3.2s linear infinite;
+  }
+  @keyframes sweep{0%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+  @media(prefers-reduced-motion:reduce){
+    .game-card.live::before{animation:none;}
+    .brand .tally{animation:none;}
+    .live-dot{animation:none;}
+  }
+
+  .status-row{
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:'JetBrains Mono',monospace; font-size:.7rem;
+    color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em;
+    margin-bottom:10px;
+  }
+  .live-dot{
+    width:7px; height:7px; border-radius:50%; background:var(--live);
+    display:inline-block; margin-right:6px; animation:pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  .team-row{display:flex; align-items:center; justify-content:space-between; padding:5px 0;}
+  .team-info{display:flex; align-items:center; gap:9px; min-width:0;}
+  .team-logo{width:24px; height:24px; object-fit:contain; flex-shrink:0;}
+  .team-name{font-weight:600; font-size:.94rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .team-name.loser{color:var(--text-dim); font-weight:500;}
+  .team-score{
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.3rem;
+    font-variant-numeric:tabular-nums; padding-left:10px;
+  }
+  .team-score.loser{color:var(--text-dim);}
+  .score-flash{animation:flash .7s ease;}
+  @keyframes flash{0%{color:var(--live);}100%{color:inherit;}}
+
+  .empty-state, .error-state, .loading-state{
+    color:var(--text-dim); font-size:.88rem; padding:22px 4px; text-align:center;
+    background:var(--surface); border:1px dashed var(--border); border-radius:var(--radius);
+  }
+  .retry-btn{
+    margin-top:10px; background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    padding:6px 14px; border-radius:6px; cursor:pointer; font-family:inherit; font-size:.85rem;
+  }
+  .retry-btn:hover{background:var(--border);}
+  .retry-btn:focus-visible{outline:2px solid var(--nfl); outline-offset:2px;}
+
+  footer{
+    text-align:center; color:var(--text-faint); font-size:.72rem;
+    padding:10px 24px 40px; font-family:'JetBrains Mono',monospace;
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="brand"><span class="tally"></span>Live Scoreboard</div>
+  <div class="meta">
+    <span id="updated-label">Loading…</span>
+    <span id="clock">--:--:--</span>
+    <button id="refresh-btn" title="Refresh now" aria-label="Refresh now">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M20 11a8 8 0 1 0-2.3 5.6M20 6v5h-5"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main class="board">
+  <section style="--col-accent:var(--mlb)">
+    <div class="column-header">
+      <svg class="league-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M6.2 5c2 2 3 4.5 3 7s-1 5-3 7"/>
+        <path d="M17.8 5c-2 2-3 4.5-3 7s1 5 3 7"/>
+      </svg>
+      <h2>MLB <span class="sub">Major League Baseball</span></h2>
+    </div>
+    <div id="col-mlb"><div class="loading-state">Loading games…</div></div>
+  </section>
+
+  <section style="--col-accent:var(--nfl)">
+    <div class="column-header">
+      <svg class="league-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <ellipse cx="12" cy="12" rx="9" ry="5.4"/>
+        <line x1="6.5" y1="12" x2="17.5" y2="12"/>
+        <line x1="9.8" y1="9.6" x2="9.8" y2="14.4"/>
+        <line x1="12" y1="9.2" x2="12" y2="14.8"/>
+        <line x1="14.2" y1="9.6" x2="14.2" y2="14.4"/>
+      </svg>
+      <h2>NFL <span class="sub">National Football League</span></h2>
+    </div>
+    <div id="col-nfl"><div class="loading-state">Loading games…</div></div>
+  </section>
+</main>
+
+<footer>Scores via ESPN public scoreboard feed · auto-refreshes every 30s</footer>
+
+<script>
+  const ESPN = {
+    mlb: 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard',
+    nfl: 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard'
+  };
+  const REFRESH_MS = 30000;
+  const lastUpdated = { mlb: null, nfl: null };
+  const prevScores = {};
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+  function fmtTime(iso){
+    return new Date(iso).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  }
+  function fmtClock(){
+    return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false});
+  }
+
+  function cardHTML(sport, ev){
+    const comp = ev.competitions && ev.competitions[0];
+    if(!comp) return '';
+    const state = ev.status.type.state; // pre | in | post
+    const detail = ev.status.type.shortDetail || ev.status.type.detail || '';
+    const competitors = [...comp.competitors].sort((a,b) => a.homeAway === 'away' ? -1 : 1);
+    const winner = competitors.find(c => c.winner);
+    const winnerId = winner ? winner.id : null;
+
+    const statusHTML = state === 'in'
+      ? `<span><span class="live-dot"></span>LIVE · ${escapeHtml(detail)}</span>`
+      : state === 'post'
+        ? `<span>${escapeHtml(detail || 'FINAL')}</span>`
+        : `<span>${fmtTime(ev.date)}</span>`;
+
+    const rows = competitors.map(c => {
+      const isLoser = state === 'post' && winnerId && c.id !== winnerId;
+      const scoreDisplay = state === 'pre' ? '—' : (c.score ?? '0');
+      const key = `${sport}-${ev.id}-${c.id}`;
+      const changed = prevScores[key] !== undefined && prevScores[key] !== scoreDisplay && state !== 'pre';
+      prevScores[key] = scoreDisplay;
+      const logo = c.team && c.team.logo ? c.team.logo : '';
+      const name = (c.team && (c.team.shortDisplayName || c.team.displayName)) || c.team.abbreviation || 'TBD';
+      return `<div class="team-row">
+        <div class="team-info">
+          ${logo ? `<img class="team-logo" src="${logo}" alt="" onerror="this.style.visibility='hidden'">` : ''}
+          <span class="team-name ${isLoser ? 'loser' : ''}">${escapeHtml(name)}</span>
+        </div>
+        <span class="team-score ${isLoser ? 'loser' : ''} ${changed ? 'score-flash' : ''}">${scoreDisplay}</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="game-card ${state === 'in' ? 'live' : ''}">
+      <div class="status-row">${statusHTML}</div>
+      ${rows}
+    </div>`;
+  }
+
+  function renderGames(sport, events){
+    const col = document.getElementById('col-' + sport);
+    if(!events.length){
+      col.innerHTML = '<div class="empty-state">No games scheduled today.</div>';
+      return;
+    }
+    col.innerHTML = events.map(ev => cardHTML(sport, ev)).join('');
+  }
+
+  async function loadSport(sport){
+    const col = document.getElementById('col-' + sport);
+    try{
+      const res = await fetch(ESPN[sport], { cache: 'no-store' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      renderGames(sport, data.events || []);
+      lastUpdated[sport] = new Date();
+    }catch(err){
+      col.innerHTML = `<div class="error-state">Couldn't load ${sport.toUpperCase()} scores.<br>
+        <button class="retry-btn" onclick="loadSport('${sport}')">Retry</button></div>`;
+    }
+  }
+
+  async function refreshAll(){
+    const btn = document.getElementById('refresh-btn');
+    btn.classList.add('spinning');
+    await Promise.all([loadSport('mlb'), loadSport('nfl')]);
+    setTimeout(() => btn.classList.remove('spinning'), 600);
+  }
+
+  function tickUpdatedLabel(){
+    const times = Object.values(lastUpdated).filter(Boolean);
+    if(!times.length) return;
+    const oldest = Math.min(...times.map(t => t.getTime()));
+    const secs = Math.round((Date.now() - oldest) / 1000);
+    document.getElementById('updated-label').textContent = secs < 5 ? 'Updated just now' : `Updated ${secs}s ago`;
+  }
+
+  document.getElementById('refresh-btn').addEventListener('click', refreshAll);
+  setInterval(refreshAll, REFRESH_MS);
+  setInterval(() => {
+    document.getElementById('clock').textContent = fmtClock();
+    tickUpdatedLabel();
+  }, 1000);
+
+  refreshAll();
+</script>
+
+</body>
+</html>
