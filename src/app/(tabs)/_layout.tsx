@@ -1,15 +1,19 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 
-import type { League } from '@/api/types';
-import { leagueLabel, usePalette } from '@/constants/theme';
-import { useEnabledLeagues } from '@/settings';
+import { tabLabel, usePalette } from '@/constants/theme';
+import { ALL_TABS, type TabKey, useTabs } from '@/settings';
 
-const ALL_LEAGUES: League[] = ['mlb', 'nfl'];
+type TabMeta = {
+  href: '/mlb' | '/nfl' | '/favorites';
+  icon: keyof typeof Ionicons.glyphMap;
+  color: 'mlb' | 'nfl';
+};
 
-const LEAGUE_META: Record<League, { href: `/${League}`; icon: keyof typeof Ionicons.glyphMap }> = {
-  mlb: { href: '/mlb', icon: 'baseball' },
-  nfl: { href: '/nfl', icon: 'american-football' },
+const TAB_META: Record<TabKey, TabMeta> = {
+  mlb: { href: '/mlb', icon: 'baseball', color: 'mlb' },
+  nfl: { href: '/nfl', icon: 'american-football', color: 'nfl' },
+  favorites: { href: '/favorites', icon: 'star', color: 'mlb' },
 };
 
 function sportIcon(name: keyof typeof Ionicons.glyphMap, color: string) {
@@ -28,11 +32,11 @@ function sportIcon(name: keyof typeof Ionicons.glyphMap, color: string) {
 
 export default function TabsLayout() {
   const palette = usePalette();
-  const enabled = useEnabledLeagues();
+  const enabled = useTabs();
 
-  // Enabled leagues first, in the user's order; disabled ones still render
+  // Enabled tabs first, in the user's order; disabled ones still render
   // (their route files must exist) but are hidden with `href: null`.
-  const ordered: League[] = [...enabled, ...ALL_LEAGUES.filter((l) => !enabled.includes(l))];
+  const ordered: TabKey[] = [...enabled, ...ALL_TABS.filter((t) => !enabled.includes(t))];
 
   return (
     <Tabs
@@ -46,17 +50,20 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontFamily: 'Oswald_500Medium', fontSize: 15 },
       }}
     >
-      {ordered.map((league) => (
-        <Tabs.Screen
-          key={league}
-          name={league}
-          options={{
-            title: leagueLabel[league],
-            href: enabled.includes(league) ? LEAGUE_META[league].href : null,
-            tabBarIcon: sportIcon(LEAGUE_META[league].icon, palette[league]),
-          }}
-        />
-      ))}
+      {ordered.map((tab) => {
+        const meta = TAB_META[tab];
+        return (
+          <Tabs.Screen
+            key={tab}
+            name={tab}
+            options={{
+              title: tabLabel[tab],
+              href: enabled.includes(tab) ? meta.href : null,
+              tabBarIcon: sportIcon(meta.icon, palette[meta.color]),
+            }}
+          />
+        );
+      })}
     </Tabs>
   );
 }

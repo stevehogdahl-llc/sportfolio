@@ -3,15 +3,13 @@ import { Pressable, Switch, Text, View } from 'react-native';
 import ReorderableList, { reorderItems, useReorderableDrag } from 'react-native-reorderable-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { League } from '@/api/types';
-import { leagueLabel, usePalette } from '@/constants/theme';
-import { useSettingsStore } from '@/settings';
+import { tabLabel, usePalette } from '@/constants/theme';
+import { ALL_TABS, isLeagueTab, type TabKey, useSettingsStore } from '@/settings';
 
-const ALL_LEAGUES: League[] = ['mlb', 'nfl'];
 const ROW = 'min-h-[52px] flex-row items-center justify-between bg-surface px-3.5 py-2.5';
 const HANDLE_WIDTH = 22;
 
-function LeagueSwitch({
+function TabSwitch({
   value,
   disabled,
   onValueChange,
@@ -32,13 +30,13 @@ function LeagueSwitch({
   );
 }
 
-/** An enabled league — long-press anywhere on the row to drag it into a new order. */
+/** An enabled tab — long-press anywhere on the row to drag it into a new order. */
 function EnabledRow({
-  league,
+  tab,
   canDisable,
   onToggle,
 }: {
-  league: League;
+  tab: TabKey;
   canDisable: boolean;
   onToggle: () => void;
 }) {
@@ -48,41 +46,45 @@ function EnabledRow({
     <Pressable onLongPress={drag} delayLongPress={200} className={ROW}>
       <View className="flex-1 flex-row items-center gap-3">
         <Ionicons name="reorder-three" size={HANDLE_WIDTH} color={palette.inkFaint} />
-        <Text className="text-[15px] text-ink">{leagueLabel[league]}</Text>
+        <Text className="text-[15px] text-ink">{tabLabel[tab]}</Text>
       </View>
-      <LeagueSwitch value disabled={!canDisable} onValueChange={onToggle} />
+      <TabSwitch value disabled={!canDisable} onValueChange={onToggle} />
     </Pressable>
   );
 }
 
-function DisabledRow({ league, onToggle }: { league: League; onToggle: () => void }) {
+function DisabledRow({ tab, onToggle }: { tab: TabKey; onToggle: () => void }) {
   return (
     <View className={ROW}>
       <View className="flex-1 flex-row items-center gap-3">
         <View style={{ width: HANDLE_WIDTH }} />
-        <Text className="text-[15px] text-ink-dim">{leagueLabel[league]}</Text>
+        <Text className="text-[15px] text-ink-dim">{tabLabel[tab]}</Text>
       </View>
-      <LeagueSwitch value={false} onValueChange={onToggle} />
+      <TabSwitch value={false} onValueChange={onToggle} />
     </View>
   );
 }
 
-export default function LeaguesScreen() {
+export default function TabsScreen() {
   const insets = useSafeAreaInsets();
   const palette = usePalette();
-  const leagues = useSettingsStore((s) => s.leagues);
-  const setLeagues = useSettingsStore((s) => s.setLeagues);
+  const tabs = useSettingsStore((s) => s.tabs);
+  const setTabs = useSettingsStore((s) => s.setTabs);
 
-  const disabled = ALL_LEAGUES.filter((l) => !leagues.includes(l));
+  const disabled = ALL_TABS.filter((t) => !tabs.includes(t));
+  const leagueCount = tabs.filter(isLeagueTab).length;
 
-  const toggle = (l: League) => {
-    if (leagues.includes(l)) {
-      if (leagues.length === 1) return; // always keep at least one league
-      setLeagues(leagues.filter((x) => x !== l));
+  const toggle = (t: TabKey) => {
+    if (tabs.includes(t)) {
+      // Never remove the last league — the app needs a scoreboard.
+      if (isLeagueTab(t) && leagueCount === 1) return;
+      setTabs(tabs.filter((x) => x !== t));
     } else {
-      setLeagues([...leagues, l]);
+      setTabs([...tabs, t]);
     }
   };
+
+  const canDisable = (t: TabKey) => !(isLeagueTab(t) && leagueCount === 1);
 
   const separator = <View style={{ height: 1, backgroundColor: palette.line }} />;
 
@@ -92,29 +94,25 @@ export default function LeaguesScreen() {
       style={{ paddingTop: 16, paddingHorizontal: 16, paddingBottom: insets.bottom + 32 }}
     >
       <Text className="mb-1.5 ml-1 font-display-md text-[12px] uppercase tracking-wider text-ink-dim">
-        Leagues
+        Tabs
       </Text>
       <View className="overflow-hidden rounded-[12px] border border-line">
         <ReorderableList
-          data={leagues}
-          keyExtractor={(l) => l}
+          data={tabs}
+          keyExtractor={(t) => t}
           scrollEnabled={false}
-          onReorder={({ from, to }) => setLeagues(reorderItems(leagues, from, to))}
+          onReorder={({ from, to }) => setTabs(reorderItems(tabs, from, to))}
           ItemSeparatorComponent={() => separator}
           renderItem={({ item }) => (
-            <EnabledRow
-              league={item}
-              canDisable={leagues.length > 1}
-              onToggle={() => toggle(item)}
-            />
+            <EnabledRow tab={item} canDisable={canDisable(item)} onToggle={() => toggle(item)} />
           )}
           ListFooterComponent={
             disabled.length > 0 ? (
               <View>
-                {disabled.map((l) => (
-                  <View key={l}>
+                {disabled.map((t) => (
+                  <View key={t}>
                     {separator}
-                    <DisabledRow league={l} onToggle={() => toggle(l)} />
+                    <DisabledRow tab={t} onToggle={() => toggle(t)} />
                   </View>
                 ))}
               </View>
@@ -123,7 +121,7 @@ export default function LeaguesScreen() {
         />
       </View>
       <Text className="mt-1.5 ml-1 font-mono-rg text-[11px] leading-4 text-ink-faint">
-        Turn a league off to hide its tab. Drag to set the tab order.
+        Turn a tab off to hide it. Drag to set the order.
       </Text>
     </View>
   );

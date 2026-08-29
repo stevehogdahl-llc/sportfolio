@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { type ReactNode, useCallback } from 'react';
+import { type ReactNode, useCallback, useMemo } from 'react';
 import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,7 +8,9 @@ import type { League } from '@/api/types';
 import { GameCard } from '@/components/GameCard';
 import { EmptyState, ErrorState, LoadingState } from '@/components/States';
 import { leagueLabel, usePalette } from '@/constants/theme';
+import { usePullRefresh } from '@/hooks/usePullRefresh';
 import { useScoreboard } from '@/hooks/useScoreboard';
+import { sortWithFavorites } from '@/lib/favorites';
 import { fmtUpdatedAgo } from '@/lib/time';
 import { useSettingsStore } from '@/settings';
 
@@ -18,13 +20,19 @@ export function ScoreboardScreen({ league }: { league: League }) {
   const palette = usePalette();
   const label = leagueLabel[league];
 
-  // Remember the league in view so "Open to: Last viewed" can return here.
+  const favorites = useSettingsStore((s) => s.favorites);
   const setLastLeague = useSettingsStore((s) => s.setLastLeague);
+
+  // Remember the league in view so "Open to: Last viewed" can return here.
   useFocusEffect(
     useCallback(() => {
       setLastLeague(league);
     }, [league, setLastLeague]),
   );
+
+  const favSet = useMemo(() => new Set(favorites), [favorites]);
+  const games = useMemo(() => sortWithFavorites(q.data ?? [], favSet), [q.data, favSet]);
+  const pull = usePullRefresh(q.refetch);
 
   const header = (
     <View className="flex-row items-start justify-between pb-3">
@@ -74,7 +82,7 @@ export function ScoreboardScreen({ league }: { league: League }) {
 
   return frame(
     <FlatList
-      data={q.data}
+      data={games}
       keyExtractor={(g) => g.id}
       renderItem={({ item }) => <GameCard game={item} />}
       ListHeaderComponent={header}
@@ -82,8 +90,8 @@ export function ScoreboardScreen({ league }: { league: League }) {
       contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32, flexGrow: 1 }}
       refreshControl={
         <RefreshControl
-          refreshing={q.isRefetching}
-          onRefresh={() => void q.refetch()}
+          refreshing={pull.refreshing}
+          onRefresh={pull.onRefresh}
           tintColor={palette.inkDim}
         />
       }
