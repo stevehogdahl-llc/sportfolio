@@ -6,10 +6,9 @@ export const DEFAULT_SETTINGS: Settings = {
   cardDensity: 'comfortable',
   showRecords: true,
   openTo: 'last',
-  leagues: ['mlb', 'nfl'],
+  tabs: ['mlb', 'nfl', 'favorites'],
   lastLeague: 'mlb',
   favorites: [],
-  myTeamsFilter: false,
   notifications: {
     enabled: false,
     scope: 'favorites',

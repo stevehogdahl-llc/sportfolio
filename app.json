@@ -35,7 +35,14 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#e0a83e"
+        }
+      ],
+      "expo-background-task"
     ],
     "experiments": {
       "typedRoutes": true

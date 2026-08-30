@@ -63,3 +63,15 @@ export interface GameDetail extends Game {
   leaders: Leader[];
   venue: string | null;
 }
+
+/** A team as listed in ESPN's league directory — used for the favorites picker. */
+export interface TeamRef {
+  id: string;
+  league: League;
+  /** short display name, e.g. "Yankees" / "Chiefs" */
+  name: string;
+  /** full display name, e.g. "New York Yankees" — used for search/sort */
+  fullName: string;
+  abbrev: string;
+  logo: string | null;
+}

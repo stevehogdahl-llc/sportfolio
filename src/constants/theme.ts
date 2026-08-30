@@ -3,6 +3,7 @@ import '@/global.css';
 import { useColorScheme } from 'nativewind';
 
 import type { League } from '@/api/types';
+import type { TabKey } from '@/settings';
 
 /**
  * Raw color values for both themes — hex mirrors of the CSS custom properties in
@@ -47,4 +48,10 @@ export function usePalette(): Palette {
 export const leagueLabel: Record<League, string> = {
   mlb: 'MLB',
   nfl: 'NFL',
+};
+
+/** Display names for every bottom tab, leagues + Favorites. */
+export const tabLabel: Record<TabKey, string> = {
+  ...leagueLabel,
+  favorites: 'Favorites',
 };

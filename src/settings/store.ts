@@ -5,22 +5,27 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { League } from '@/api/types';
 import { DEFAULT_SETTINGS } from './defaults';
-import type { CardDensity, NotificationSettings, OpenTo, Settings, ThemePref } from './types';
-
-const ALL_LEAGUES: League[] = ['mlb', 'nfl'];
-
-type NotificationCategory = keyof NotificationSettings['categories'];
+import {
+  ALL_TABS,
+  isLeagueTab,
+  type CardDensity,
+  type NotificationCategory,
+  type NotificationSettings,
+  type OpenTo,
+  type Settings,
+  type TabKey,
+  type ThemePref,
+} from './types';
 
 interface SettingsActions {
   setTheme: (theme: ThemePref) => void;
   setCardDensity: (density: CardDensity) => void;
   setShowRecords: (value: boolean) => void;
   setOpenTo: (openTo: OpenTo) => void;
-  /** Empty or invalid input is coerced back to all leagues in canonical order. */
-  setLeagues: (leagues: League[]) => void;
+  /** Invalid input is coerced; always keeps at least one league. */
+  setTabs: (tabs: TabKey[]) => void;
   setLastLeague: (league: League) => void;
   toggleFavorite: (key: string) => void;
-  setMyTeamsFilter: (value: boolean) => void;
   setNotificationsEnabled: (value: boolean) => void;
   setNotificationScope: (scope: NotificationSettings['scope']) => void;
   setNotificationCategory: (category: NotificationCategory, value: boolean) => void;
@@ -28,13 +33,14 @@ interface SettingsActions {
 
 export type SettingsState = Settings & SettingsActions;
 
-/** Keep only known leagues, dedupe, preserve order; fall back to all of them. */
-function sanitizeLeagues(leagues: League[]): League[] {
-  const seen = new Set<League>();
-  for (const l of leagues) {
-    if (ALL_LEAGUES.includes(l)) seen.add(l);
+/** Keep only known tabs, dedupe, preserve order; guarantee at least one league. */
+function sanitizeTabs(tabs: readonly TabKey[]): TabKey[] {
+  const seen = new Set<TabKey>();
+  for (const t of tabs) {
+    if (ALL_TABS.includes(t)) seen.add(t);
   }
-  return seen.size > 0 ? [...seen] : [...ALL_LEAGUES];
+  const result = [...seen];
+  return result.some(isLeagueTab) ? result : [...ALL_TABS];
 }
 
 const PERSIST_VERSION = 1;
@@ -48,7 +54,14 @@ export const useSettingsStore = create<SettingsState>()(
       setCardDensity: (cardDensity) => set({ cardDensity }),
       setShowRecords: (showRecords) => set({ showRecords }),
       setOpenTo: (openTo) => set({ openTo }),
-      setLeagues: (leagues) => set({ leagues: sanitizeLeagues(leagues) }),
+      setTabs: (tabs) =>
+        set((s) => {
+          const next = sanitizeTabs(tabs);
+          // Drop "Open to" back to Last viewed if it pointed at a now-hidden tab.
+          const openTo =
+            s.openTo !== 'last' && !next.includes(s.openTo) ? 'last' : s.openTo;
+          return { tabs: next, openTo };
+        }),
       setLastLeague: (lastLeague) => set({ lastLeague }),
 
       toggleFavorite: (key) =>
@@ -57,8 +70,6 @@ export const useSettingsStore = create<SettingsState>()(
             ? s.favorites.filter((k) => k !== key)
             : [...s.favorites, key],
         })),
-
-      setMyTeamsFilter: (myTeamsFilter) => set({ myTeamsFilter }),
 
       setNotificationsEnabled: (enabled) =>
         set((s) => ({ notifications: { ...s.notifications, enabled } })),
@@ -81,20 +92,23 @@ export const useSettingsStore = create<SettingsState>()(
         cardDensity: s.cardDensity,
         showRecords: s.showRecords,
         openTo: s.openTo,
-        leagues: s.leagues,
+        tabs: s.tabs,
         lastLeague: s.lastLeague,
         favorites: s.favorites,
-        myTeamsFilter: s.myTeamsFilter,
         notifications: s.notifications,
       }),
       // Deep-merge persisted state onto defaults so a newly added field (including
       // nested notification categories) is never left undefined after an upgrade.
       merge: (persisted, current): SettingsState => {
-        const saved = (persisted ?? {}) as Partial<Settings>;
+        const { leagues, ...saved } = (persisted ?? {}) as Partial<Settings> & {
+          leagues?: TabKey[];
+        };
+        // Migrate the pre-favorites `leagues` field into `tabs`.
+        const rawTabs = saved.tabs ?? (leagues ? [...leagues, 'favorites'] : current.tabs);
         return {
           ...current,
           ...saved,
-          leagues: sanitizeLeagues(saved.leagues ?? current.leagues),
+          tabs: sanitizeTabs(rawTabs),
           notifications: {
             ...current.notifications,
             ...saved.notifications,
