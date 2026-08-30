@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { League } from '@/api/types';
 import { LeaderRow } from '@/components/LeaderRow';
 import { LinescoreTable } from '@/components/LinescoreTable';
+import { SituationStrip } from '@/components/SituationStrip';
 import { ErrorState, LoadingState } from '@/components/States';
 import { StatusPill } from '@/components/StatusPill';
 import { TeamRow } from '@/components/TeamRow';
@@ -71,9 +72,19 @@ export function GameDetailScreen() {
         <TeamRow side={home} dim={homeDim} scoreSize={30} />
       </View>
 
+      {g.state === 'in' && g.situation ? (
+        <SituationStrip league={g.league} situation={g.situation} />
+      ) : null}
+
       {g.periods.length > 0 ? (
         <Section title="Line Score">
-          <LinescoreTable periods={g.periods} periodLabel={g.periodLabel} away={away} home={home} />
+          <LinescoreTable
+            periods={g.periods}
+            periodLabel={g.periodLabel}
+            away={away}
+            home={home}
+            currentPeriod={g.currentPeriod}
+          />
         </Section>
       ) : null}
 

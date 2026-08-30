@@ -15,6 +15,10 @@ export interface TeamSide {
   record: string | null;
   isWinner: boolean;
   homeAway: 'home' | 'away';
+  /** MLB game total — hits; null for NFL and before the feed carries it */
+  hits: number | null;
+  /** MLB game total — errors; null for NFL and before the feed carries it */
+  errors: number | null;
 }
 
 export interface GameOdds {
@@ -56,12 +60,45 @@ export interface Leader {
   statLine: string;
 }
 
+/**
+ * Live game state, present only while `state === 'in'`. One shape covers both
+ * sports; the `kind` field says which half is meaningful.
+ */
+export interface Situation {
+  kind: 'baseball' | 'football';
+  /** text of the most recent play, when the feed carries it */
+  lastPlay: string | null;
+
+  // baseball — null between half-innings / when not sent
+  balls: number | null;
+  strikes: number | null;
+  outs: number | null;
+  onFirst: boolean;
+  onSecond: boolean;
+  onThird: boolean;
+
+  // football
+  /** e.g. "2nd & 7"; null on kickoffs / extra points */
+  downDistance: string | null;
+  /** e.g. "KC 45" — ball spot */
+  ballSpot: string | null;
+  /** abbrev of the team with possession, e.g. "KC"; null if unknown */
+  possessionAbbrev: string | null;
+  isRedZone: boolean;
+  homeTimeouts: number | null;
+  awayTimeouts: number | null;
+}
+
 export interface GameDetail extends Game {
   periods: PeriodScore[];
   /** header word for the period column: "Q" (NFL) or "Inn" (MLB) */
   periodLabel: string;
+  /** period (inning / quarter) currently in progress; null unless `state === 'in'` */
+  currentPeriod: number | null;
   leaders: Leader[];
   venue: string | null;
+  /** live bases/count (MLB) or down & distance (NFL); null unless in progress */
+  situation: Situation | null;
 }
 
 /** A team as listed in ESPN's league directory — used for the favorites picker. */
