@@ -10,7 +10,12 @@
     "backgroundColor": "#0e1117",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.stevehogdahlllc.sportfolio"
+      "bundleIdentifier": "com.stevehogdahlllc.sportfolio",
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.stevehogdahlllc.sportfolio"
+        ]
+      }
     },
     "android": {
       "package": "com.stevehogdahlllc.sportfolio",
@@ -42,7 +47,8 @@
           "color": "#e0a83e"
         }
       ],
-      "expo-background-task"
+      "expo-background-task",
+      "@bacons/apple-targets"
     ],
     "experiments": {
       "typedRoutes": true

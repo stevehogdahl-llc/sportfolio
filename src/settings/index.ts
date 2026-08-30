@@ -38,6 +38,11 @@ export function useShowRecords(): boolean {
   return useSettingsStore((s) => s.showRecords);
 }
 
+/** Whether to show the pregame spread / over-under on scoreboard cards. */
+export function useShowOdds(): boolean {
+  return useSettingsStore((s) => s.showOdds);
+}
+
 /** Bottom tabs (leagues + Favorites) in display order. */
 export function useTabs(): TabKey[] {
   return useSettingsStore((s) => s.tabs);

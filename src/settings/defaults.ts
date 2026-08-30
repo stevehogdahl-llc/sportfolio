@@ -5,6 +5,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   cardDensity: 'comfortable',
   showRecords: true,
+  showOdds: false,
   openTo: 'last',
   tabs: ['mlb', 'nfl', 'favorites'],
   lastLeague: 'mlb',

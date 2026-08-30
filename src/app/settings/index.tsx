@@ -36,6 +36,7 @@ export default function SettingsHub() {
   const theme = useSettingsStore((s) => s.theme);
   const cardDensity = useSettingsStore((s) => s.cardDensity);
   const showRecords = useSettingsStore((s) => s.showRecords);
+  const showOdds = useSettingsStore((s) => s.showOdds);
   const openTo = useSettingsStore((s) => s.openTo);
   const tabs = useSettingsStore((s) => s.tabs);
   const favoritesCount = useSettingsStore((s) => s.favorites.length);
@@ -43,6 +44,7 @@ export default function SettingsHub() {
   const setTheme = useSettingsStore((s) => s.setTheme);
   const setCardDensity = useSettingsStore((s) => s.setCardDensity);
   const setShowRecords = useSettingsStore((s) => s.setShowRecords);
+  const setShowOdds = useSettingsStore((s) => s.setShowOdds);
   const setOpenTo = useSettingsStore((s) => s.setOpenTo);
 
   // Only offer "Favorites" as a landing tab while that tab is enabled.
@@ -61,6 +63,12 @@ export default function SettingsHub() {
           sublabel="Show win–loss next to team names"
           value={showRecords}
           onValueChange={setShowRecords}
+        />
+        <SettingsSwitch
+          label="Betting odds"
+          sublabel="Show the spread and over/under on upcoming games"
+          value={showOdds}
+          onValueChange={setShowOdds}
         />
         <SettingsSegmented
           label="Card density"
