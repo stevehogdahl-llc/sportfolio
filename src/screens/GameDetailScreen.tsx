@@ -32,9 +32,14 @@ export function GameDetailScreen() {
 
   const q = useGameDetail(league, id);
   // The live bases/count block only comes on the scoreboard feed; pull it from
-  // the same (polling) query the league tab uses and match this game by id.
+  // the same (polling) query the league tab uses and match this game by id. Take
+  // the run total from that same object so bases and score move together.
   const sb = useScoreboard(league);
-  const liveSituation = sb.data?.find((game) => game.id === id)?.situation ?? null;
+  const sbGame = sb.data?.find((game) => game.id === id) ?? null;
+  const liveSituation = sbGame?.situation ?? null;
+  const runTotal = sbGame
+    ? (sbGame.competitors[0].score ?? 0) + (sbGame.competitors[1].score ?? 0)
+    : 0;
 
   const frame = (children: ReactNode, title = 'Game') => (
     <>
@@ -63,7 +68,7 @@ export function GameDetailScreen() {
       <GameHeaderCard game={g} />
 
       {g.state === 'in' && liveSituation ? (
-        <SituationStrip league={g.league} situation={liveSituation} />
+        <SituationStrip league={g.league} situation={liveSituation} runTotal={runTotal} />
       ) : null}
 
       {g.leaders.length > 0 ? (

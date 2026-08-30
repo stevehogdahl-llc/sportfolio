@@ -7,15 +7,21 @@ import type { League, PlayerBrief, Situation } from '@/api/types';
 type Props = {
   league: League;
   situation: Situation;
+  /** combined run total (both teams) — lets the diamond animate a run scoring */
+  runTotal?: number;
 };
 
 /**
  * Live game-state strip: a bases/count diamond for MLB, a down-&-distance chip
  * for NFL. Rendered on the game-detail screen only while `state === 'in'`.
  */
-export function SituationStrip({ league, situation }: Props) {
+export function SituationStrip({ league, situation, runTotal }: Props) {
   const body =
-    league === 'nfl' ? <FootballSituation s={situation} /> : <BaseballSituation s={situation} />;
+    league === 'nfl' ? (
+      <FootballSituation s={situation} />
+    ) : (
+      <BaseballSituation s={situation} runTotal={runTotal} />
+    );
   if (!body) return null;
 
   return (
@@ -32,14 +38,19 @@ export function SituationStrip({ league, situation }: Props) {
 
 // --- MLB -------------------------------------------------------------------
 
-function BaseballSituation({ s }: { s: Situation }) {
+function BaseballSituation({ s, runTotal }: { s: Situation; runTotal?: number }) {
   const hasCount = s.balls != null || s.strikes != null || s.outs != null;
   const hasRunners = s.onFirst || s.onSecond || s.onThird;
   if (!hasCount && !hasRunners && !s.batter && !s.pitcher) return null;
 
   return (
     <View>
-      <Diamond onFirst={s.onFirst} onSecond={s.onSecond} onThird={s.onThird} />
+      <Diamond
+        onFirst={s.onFirst}
+        onSecond={s.onSecond}
+        onThird={s.onThird}
+        runTotal={runTotal ?? 0}
+      />
 
       <View className="mt-2 flex-row justify-around border-t border-line pt-3">
         {COUNT_COLUMNS.map((col) => (
@@ -103,32 +114,53 @@ const CENTER: Record<BaseKey, Pt> = {
   home: { x: S, y: S },
 };
 
-type Advance = { id: number; from: BaseKey; to: BaseKey };
+type Advance = { id: number; from: BaseKey; to: BaseKey; exit?: boolean };
 
 /** Top-down infield: a square rotated 45° with a base marker on each corner. */
 function Diamond({
   onFirst,
   onSecond,
   onThird,
+  runTotal,
 }: {
   onFirst: boolean;
   onSecond: boolean;
   onThird: boolean;
+  runTotal: number;
 }) {
   const prev = useRef({ first: onFirst, second: onSecond, third: onThird });
+  const prevRuns = useRef(runTotal);
   const [runners, setRunners] = useState<Advance[]>([]);
   const idRef = useRef(0);
 
   useEffect(() => {
     const p = prev.current;
     const next: Advance[] = [];
-    // Animate a runner into any base that just became occupied.
-    if (!p.first && onFirst) next.push({ id: idRef.current++, from: 'home', to: 'first' });
-    if (!p.second && onSecond) next.push({ id: idRef.current++, from: 'first', to: 'second' });
-    if (!p.third && onThird) next.push({ id: idRef.current++, from: 'second', to: 'third' });
+    const mk = (from: BaseKey, to: BaseKey, exit?: boolean) => {
+      next.push({ id: idRef.current++, from, to, exit });
+    };
+
+    // A runner into any base that just became occupied.
+    if (!p.first && onFirst) mk('home', 'first');
+    if (!p.second && onSecond) mk('first', 'second');
+    if (!p.third && onThird) mk('second', 'third');
+
+    // Run(s) scoring: for each run added, send home a runner off a base that
+    // just emptied (closest to the plate first). Bases that emptied without a
+    // run are outs — left alone.
+    const scored = Math.max(0, runTotal - prevRuns.current);
+    if (scored > 0) {
+      const vacated: BaseKey[] = [];
+      if (p.third && !onThird) vacated.push('third');
+      if (p.second && !onSecond) vacated.push('second');
+      if (p.first && !onFirst) vacated.push('first');
+      for (const b of vacated.slice(0, scored)) mk(b, 'home', true);
+    }
+
     prev.current = { first: onFirst, second: onSecond, third: onThird };
+    prevRuns.current = runTotal;
     if (next.length) setRunners((r) => [...r, ...next]);
-  }, [onFirst, onSecond, onThird]);
+  }, [onFirst, onSecond, onThird, runTotal]);
 
   const clear = useCallback(
     (id: number) => setRunners((r) => r.filter((x) => x.id !== id)),
@@ -147,7 +179,13 @@ function Diamond({
         <Base center={CENTER.third} on={onThird} />
         <Base center={CENTER.home} home />
         {runners.map((a) => (
-          <Runner key={a.id} from={CENTER[a.from]} to={CENTER[a.to]} onDone={() => clear(a.id)} />
+          <Runner
+            key={a.id}
+            from={CENTER[a.from]}
+            to={CENTER[a.to]}
+            exit={a.exit}
+            onDone={() => clear(a.id)}
+          />
         ))}
       </View>
     </View>
@@ -192,14 +230,27 @@ function Base({ center, on, home }: { center: Pt; on?: boolean; home?: boolean }
   );
 }
 
-/** A runner marker tweening from one base to the next, then removed. */
-function Runner({ from, to, onDone }: { from: Pt; to: Pt; onDone: () => void }) {
+/**
+ * A runner marker tweening from one base to the next, then removed. `exit` runs
+ * (a runner scoring) fade out as they reach the plate.
+ */
+function Runner({
+  from,
+  to,
+  exit,
+  onDone,
+}: {
+  from: Pt;
+  to: Pt;
+  exit?: boolean;
+  onDone: () => void;
+}) {
   const t = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const anim = Animated.timing(t, {
       toValue: 1,
-      duration: 620,
+      duration: exit ? 720 : 620,
       easing: Easing.inOut(Easing.quad),
       useNativeDriver: true,
     });
@@ -207,7 +258,7 @@ function Runner({ from, to, onDone }: { from: Pt; to: Pt; onDone: () => void }) 
       if (finished) onDone();
     });
     return () => anim.stop();
-  }, [t, onDone]);
+  }, [t, exit, onDone]);
 
   return (
     <Animated.View
@@ -217,6 +268,7 @@ function Runner({ from, to, onDone }: { from: Pt; to: Pt; onDone: () => void }) 
         top: from.y - RUNNER / 2,
         width: RUNNER,
         height: RUNNER,
+        opacity: exit ? t.interpolate({ inputRange: [0, 0.7, 1], outputRange: [1, 1, 0] }) : 1,
         transform: [
           { translateX: t.interpolate({ inputRange: [0, 1], outputRange: [0, to.x - from.x] }) },
           { translateY: t.interpolate({ inputRange: [0, 1], outputRange: [0, to.y - from.y] }) },
