@@ -105,7 +105,7 @@ const CENTER: Record<BaseKey, Pt> = {
 
 type Advance = { id: number; from: BaseKey; to: BaseKey };
 
-/** Faux-3D infield: a square tilted back in perspective and rotated to a diamond. */
+/** Top-down infield: a square rotated 45° with a base marker on each corner. */
 function Diamond({
   onFirst,
   onSecond,
@@ -136,21 +136,19 @@ function Diamond({
   );
 
   return (
-    <View className="h-[152px] w-full items-center justify-center">
-      <View style={{ transform: [{ perspective: 780 }, { rotateX: '54deg' }] }}>
-        <View
-          className="rotate-45 rounded-[12px] border border-line bg-surface-2"
-          style={{ width: S, height: S }}
-        >
-          <Dot center={{ x: S / 2, y: S / 2 }} size={16} className="border border-line bg-surface" />
-          <Base center={CENTER.second} on={onSecond} />
-          <Base center={CENTER.first} on={onFirst} />
-          <Base center={CENTER.third} on={onThird} />
-          <Base center={CENTER.home} home />
-          {runners.map((a) => (
-            <Runner key={a.id} from={CENTER[a.from]} to={CENTER[a.to]} onDone={() => clear(a.id)} />
-          ))}
-        </View>
+    <View className="h-[150px] w-full items-center justify-center">
+      <View
+        className="rotate-45 rounded-[12px] border border-line bg-surface-2"
+        style={{ width: S, height: S }}
+      >
+        <Dot center={{ x: S / 2, y: S / 2 }} size={16} className="border border-line bg-surface" />
+        <Base center={CENTER.second} on={onSecond} />
+        <Base center={CENTER.first} on={onFirst} />
+        <Base center={CENTER.third} on={onThird} />
+        <Base center={CENTER.home} home />
+        {runners.map((a) => (
+          <Runner key={a.id} from={CENTER[a.from]} to={CENTER[a.to]} onDone={() => clear(a.id)} />
+        ))}
       </View>
     </View>
   );
