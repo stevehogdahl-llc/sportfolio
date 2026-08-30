@@ -6,6 +6,7 @@ import type {
   Leader,
   League,
   PeriodScore,
+  PlayerBrief,
   Situation,
   TeamSide,
 } from './types';
@@ -214,10 +215,18 @@ function normalizeSituation(league: League, raw: unknown, sides: TeamSide[]): Si
 
   const lastPlay = asStr(dig(s, 'lastPlay', 'text')) || null;
 
-  const athleteName = (who: 'batter' | 'pitcher'): string | null =>
-    asStr(dig(s, who, 'athlete', 'shortName')) ||
-    asStr(dig(s, who, 'athlete', 'displayName')) ||
-    null;
+  const playerBrief = (who: 'batter' | 'pitcher'): PlayerBrief | null => {
+    const a = dig(s, who, 'athlete');
+    const name = asStr(dig(a, 'fullName')) || asStr(dig(a, 'displayName')) || asStr(dig(a, 'shortName'));
+    if (!name) return null;
+    return {
+      name,
+      headshot: asStr(dig(a, 'headshot')) || null,
+      position: asStr(dig(a, 'position')) || null,
+      jersey: asStr(dig(a, 'jersey')) || null,
+      line: asStr(dig(s, who, 'summary')) || null,
+    };
+  };
 
   if (league === 'nfl') {
     const possId = asStr(dig(s, 'possession')) || asStr(dig(s, 'lastPlay', 'team', 'id'));
@@ -260,8 +269,8 @@ function normalizeSituation(league: League, raw: unknown, sides: TeamSide[]): Si
     onFirst: dig(s, 'onFirst') === true,
     onSecond: dig(s, 'onSecond') === true,
     onThird: dig(s, 'onThird') === true,
-    batter: athleteName('batter'),
-    pitcher: athleteName('pitcher'),
+    batter: playerBrief('batter'),
+    pitcher: playerBrief('pitcher'),
     downDistance: null,
     ballSpot: null,
     possessionAbbrev: null,

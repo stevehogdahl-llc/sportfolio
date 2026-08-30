@@ -1,7 +1,9 @@
+import { Image } from 'expo-image';
+import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Text, View } from 'react-native';
 
-import type { League, Situation } from '@/api/types';
+import type { League, PlayerBrief, Situation } from '@/api/types';
 
 type Props = {
   league: League;
@@ -39,27 +41,7 @@ function BaseballSituation({ s }: { s: Situation }) {
   return (
     <View>
       <View className="items-center">
-        <View className="h-[140px] w-[160px] items-center justify-center">
-          {s.pitcher ? (
-            <View className="absolute top-0 items-center">
-              <RoleChip label="P" />
-              <Text numberOfLines={1} className="mt-0.5 max-w-[150px] text-[12px] font-semibold text-ink">
-                {s.pitcher}
-              </Text>
-            </View>
-          ) : null}
-
-          <Diamond onFirst={s.onFirst} onSecond={s.onSecond} onThird={s.onThird} />
-
-          {s.batter ? (
-            <View className="absolute bottom-0 items-center">
-              <RoleChip label="AB" />
-              <Text numberOfLines={1} className="mt-0.5 max-w-[150px] text-[12px] font-semibold text-ink">
-                {s.batter}
-              </Text>
-            </View>
-          ) : null}
-        </View>
+        <Diamond onFirst={s.onFirst} onSecond={s.onSecond} onThird={s.onThird} />
       </View>
 
       <View className="mt-2 flex-row justify-around border-t border-line pt-3">
@@ -67,15 +49,72 @@ function BaseballSituation({ s }: { s: Situation }) {
           <CountColumn key={col.key} col={col} value={s[col.key] ?? 0} />
         ))}
       </View>
+
+      {s.batter || s.pitcher ? (
+        <View className="mt-3 rounded-[10px] border border-line">
+          {s.batter ? (
+            <PlayerRow
+              role="At bat"
+              player={s.batter}
+              trailing={
+                s.balls != null || s.strikes != null ? (
+                  <View className="items-end">
+                    <Text className="font-mono-rg text-[9px] uppercase tracking-wider text-ink-faint">
+                      Count
+                    </Text>
+                    <Text className="font-display-md text-[20px] text-ink">
+                      {s.balls ?? 0}-{s.strikes ?? 0}
+                    </Text>
+                  </View>
+                ) : null
+              }
+            />
+          ) : null}
+          {s.batter && s.pitcher ? <View className="mx-3 border-t border-line" /> : null}
+          {s.pitcher ? <PlayerRow role="Pitching" player={s.pitcher} /> : null}
+        </View>
+      ) : null}
     </View>
   );
 }
 
-/** Small label chip (`P` / `AB`) that sits above a player name on the figure. */
-function RoleChip({ label }: { label: string }) {
+function PlayerRow({
+  role,
+  player,
+  trailing,
+}: {
+  role: string;
+  player: PlayerBrief;
+  trailing?: ReactNode;
+}) {
+  const meta = [player.position, player.jersey ? `#${player.jersey}` : null]
+    .filter(Boolean)
+    .join('  ·  ');
+
   return (
-    <View className="rounded-[4px] bg-surface-2 px-1.5 py-px">
-      <Text className="font-mono-md text-[9px] uppercase tracking-wider text-ink-dim">{label}</Text>
+    <View className="flex-row items-center gap-3 p-3">
+      <View className="h-11 w-11 overflow-hidden rounded-full bg-surface-2">
+        {player.headshot ? (
+          <Image source={{ uri: player.headshot }} style={{ flex: 1 }} contentFit="cover" transition={120} />
+        ) : null}
+      </View>
+
+      <View className="flex-1">
+        <Text className="font-mono-rg text-[9px] uppercase tracking-wider text-ink-faint">{role}</Text>
+        <Text numberOfLines={1} className="text-[15px] font-semibold text-ink">
+          {player.name}
+        </Text>
+        {meta ? (
+          <Text className="mt-0.5 font-mono-rg text-[11px] text-ink-dim">{meta}</Text>
+        ) : null}
+        {player.line ? (
+          <Text numberOfLines={1} className="mt-0.5 font-mono-rg text-[11px] text-ink-dim">
+            {player.line}
+          </Text>
+        ) : null}
+      </View>
+
+      {trailing ?? null}
     </View>
   );
 }

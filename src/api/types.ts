@@ -66,6 +66,20 @@ export interface Leader {
   statLine: string;
 }
 
+/** The batter or pitcher in the current MLB matchup. */
+export interface PlayerBrief {
+  /** full name, e.g. "Aaron Judge" */
+  name: string;
+  /** ESPN headshot URL; null when the feed omits it */
+  headshot: string | null;
+  /** roster position, e.g. "RF" / "SP" */
+  position: string | null;
+  /** jersey number as a string, e.g. "99" */
+  jersey: string | null;
+  /** today's line so far, e.g. "0-1, BB, K" or "5.2 IP, 0 ER, 2 H, 6 K" */
+  line: string | null;
+}
+
 /**
  * Live game state, present only while `state === 'in'`. One shape covers both
  * sports; the `kind` field says which half is meaningful.
@@ -82,10 +96,10 @@ export interface Situation {
   onFirst: boolean;
   onSecond: boolean;
   onThird: boolean;
-  /** short name of the batter at the plate, e.g. "C. Jensen"; null between innings */
-  batter: string | null;
-  /** short name of the current pitcher, e.g. "P. Messick"; null between innings */
-  pitcher: string | null;
+  /** batter at the plate; null between innings */
+  batter: PlayerBrief | null;
+  /** current pitcher; null between innings */
+  pitcher: PlayerBrief | null;
 
   // football
   /** e.g. "2nd & 7"; null on kickoffs / extra points */
