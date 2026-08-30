@@ -75,22 +75,22 @@ export function GameDetailScreen() {
         </View>
         <TeamRow side={away} dim={awayDim} scoreSize={30} />
         <TeamRow side={home} dim={homeDim} scoreSize={30} />
+
+        {g.periods.length > 0 ? (
+          <View className="mt-3 border-t border-line pt-3">
+            <LinescoreTable
+              periods={g.periods}
+              periodLabel={g.periodLabel}
+              away={away}
+              home={home}
+              currentPeriod={g.currentPeriod}
+            />
+          </View>
+        ) : null}
       </View>
 
       {g.state === 'in' && liveSituation ? (
         <SituationStrip league={g.league} situation={liveSituation} />
-      ) : null}
-
-      {g.periods.length > 0 ? (
-        <Section title="Line Score">
-          <LinescoreTable
-            periods={g.periods}
-            periodLabel={g.periodLabel}
-            away={away}
-            home={home}
-            currentPeriod={g.currentPeriod}
-          />
-        </Section>
       ) : null}
 
       {g.leaders.length > 0 ? (

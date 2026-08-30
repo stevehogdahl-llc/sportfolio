@@ -49,7 +49,7 @@ function BaseballSituation({ s }: { s: Situation }) {
 
       <View className="mt-3 flex-row justify-around border-t border-line pt-3">
         {COUNT_COLUMNS.map((col) => (
-          <CountColumn key={col.letter} col={col} value={s[col.key] ?? 0} />
+          <CountColumn key={col.key} col={col} value={s[col.key] ?? 0} />
         ))}
       </View>
     </View>
@@ -106,42 +106,29 @@ type CountKey = 'balls' | 'strikes' | 'outs';
 type CountCol = {
   key: CountKey;
   label: string;
-  letter: string;
-  /** filled-pip and mark colors — static classes so NativeWind can see them */
+  /** filled-pip color — static class so NativeWind can see it */
   on: string;
-  mark: string;
 };
 
 const COUNT_COLUMNS: CountCol[] = [
-  {
-    key: 'balls',
-    label: 'Balls',
-    letter: 'B',
-    on: 'bg-[#1a9d54] dark:bg-[#43d17f]',
-    mark: 'border-[#1a9d54] text-[#1a9d54] dark:border-[#43d17f] dark:text-[#43d17f]',
-  },
-  { key: 'strikes', label: 'Strikes', letter: 'S', on: 'bg-mlb', mark: 'border-mlb text-mlb' },
-  { key: 'outs', label: 'Outs', letter: 'O', on: 'bg-live', mark: 'border-live text-live' },
+  { key: 'balls', label: 'Balls', on: 'bg-[#1a9d54] dark:bg-[#43d17f]' },
+  { key: 'strikes', label: 'Strikes', on: 'bg-mlb' },
+  { key: 'outs', label: 'Outs', on: 'bg-live' },
 ];
 
 const PIPS = [0, 1, 2];
 
 function CountColumn({ col, value }: { col: CountCol; value: number }) {
   return (
-    <View className="items-center gap-1.5">
+    <View className="items-center gap-2">
       <Text className="font-mono-rg text-[10px] uppercase tracking-wider text-ink-faint">
         {col.label}
       </Text>
-      <View className="flex-row items-center gap-1.5">
-        <View
-          className={`h-4 w-4 items-center justify-center rounded-full border ${col.mark}`}
-        >
-          <Text className={`font-mono-md text-[9px] ${col.mark}`}>{col.letter}</Text>
-        </View>
+      <View className="flex-row items-center gap-2">
         {PIPS.map((i) => (
           <View
             key={i}
-            className={`h-2 w-2 rounded-full ${
+            className={`h-3.5 w-3.5 rounded-full ${
               i < value ? col.on : 'border border-ink-faint'
             }`}
           />
