@@ -18,7 +18,6 @@ export function SituationStrip({ league, situation }: Props) {
 
   return (
     <View className="mt-4 rounded-[12px] border border-line bg-surface p-3">
-      <Text className="mb-2 font-display-md text-[12px] uppercase tracking-wider text-live">Live</Text>
       {body}
       {situation.lastPlay ? (
         <Text numberOfLines={2} className="mt-3 font-mono-rg text-[11px] leading-4 text-ink-faint">
