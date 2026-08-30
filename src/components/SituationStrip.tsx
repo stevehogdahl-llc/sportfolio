@@ -1,5 +1,4 @@
 import { Image } from 'expo-image';
-import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Text, View } from 'react-native';
 
@@ -40,9 +39,7 @@ function BaseballSituation({ s }: { s: Situation }) {
 
   return (
     <View>
-      <View className="items-center">
-        <Diamond onFirst={s.onFirst} onSecond={s.onSecond} onThird={s.onThird} />
-      </View>
+      <Diamond onFirst={s.onFirst} onSecond={s.onSecond} onThird={s.onThird} />
 
       <View className="mt-2 flex-row justify-around border-t border-line pt-3">
         {COUNT_COLUMNS.map((col) => (
@@ -52,24 +49,7 @@ function BaseballSituation({ s }: { s: Situation }) {
 
       {s.batter || s.pitcher ? (
         <View className="mt-3 rounded-[10px] border border-line">
-          {s.batter ? (
-            <PlayerRow
-              role="At bat"
-              player={s.batter}
-              trailing={
-                s.balls != null || s.strikes != null ? (
-                  <View className="items-end">
-                    <Text className="font-mono-rg text-[9px] uppercase tracking-wider text-ink-faint">
-                      Count
-                    </Text>
-                    <Text className="font-display-md text-[20px] text-ink">
-                      {s.balls ?? 0}-{s.strikes ?? 0}
-                    </Text>
-                  </View>
-                ) : null
-              }
-            />
-          ) : null}
+          {s.batter ? <PlayerRow role="At bat" player={s.batter} /> : null}
           {s.batter && s.pitcher ? <View className="mx-3 border-t border-line" /> : null}
           {s.pitcher ? <PlayerRow role="Pitching" player={s.pitcher} /> : null}
         </View>
@@ -78,15 +58,7 @@ function BaseballSituation({ s }: { s: Situation }) {
   );
 }
 
-function PlayerRow({
-  role,
-  player,
-  trailing,
-}: {
-  role: string;
-  player: PlayerBrief;
-  trailing?: ReactNode;
-}) {
+function PlayerRow({ role, player }: { role: string; player: PlayerBrief }) {
   const meta = [player.position, player.jersey ? `#${player.jersey}` : null]
     .filter(Boolean)
     .join('  ·  ');
@@ -104,25 +76,21 @@ function PlayerRow({
         <Text numberOfLines={1} className="text-[15px] font-semibold text-ink">
           {player.name}
         </Text>
-        {meta ? (
-          <Text className="mt-0.5 font-mono-rg text-[11px] text-ink-dim">{meta}</Text>
-        ) : null}
+        {meta ? <Text className="mt-0.5 font-mono-rg text-[11px] text-ink-dim">{meta}</Text> : null}
         {player.line ? (
           <Text numberOfLines={1} className="mt-0.5 font-mono-rg text-[11px] text-ink-dim">
             {player.line}
           </Text>
         ) : null}
       </View>
-
-      {trailing ?? null}
     </View>
   );
 }
 
-// Infield geometry, in the (pre-rotation) local space of the 82px square.
-const S = 82;
-const BASE = 18;
-const RUNNER = 12;
+// Infield geometry, in the (pre-rotation) local space of the SxS square.
+const S = 92;
+const BASE = 20;
+const RUNNER = 13;
 
 type BaseKey = 'first' | 'second' | 'third' | 'home';
 type Pt = { x: number; y: number };
@@ -168,19 +136,20 @@ function Diamond({
   );
 
   return (
-    <View className="h-[116px] w-[124px] items-center justify-center overflow-hidden">
-      <View style={{ transform: [{ perspective: 720 }, { rotateX: '54deg' }] }}>
-        <View className="h-[96px] w-[96px] items-center justify-center">
-          <View className="h-[82px] w-[82px] rotate-45 rounded-[10px] border border-line bg-surface-2">
-            <Dot center={{ x: S / 2, y: S / 2 }} size={14} className="border border-line bg-surface" />
-            <Base center={CENTER.second} on={onSecond} />
-            <Base center={CENTER.first} on={onFirst} />
-            <Base center={CENTER.third} on={onThird} />
-            <Base center={CENTER.home} home />
-            {runners.map((a) => (
-              <Runner key={a.id} from={CENTER[a.from]} to={CENTER[a.to]} onDone={() => clear(a.id)} />
-            ))}
-          </View>
+    <View className="h-[152px] w-full items-center justify-center">
+      <View style={{ transform: [{ perspective: 780 }, { rotateX: '54deg' }] }}>
+        <View
+          className="rotate-45 rounded-[12px] border border-line bg-surface-2"
+          style={{ width: S, height: S }}
+        >
+          <Dot center={{ x: S / 2, y: S / 2 }} size={16} className="border border-line bg-surface" />
+          <Base center={CENTER.second} on={onSecond} />
+          <Base center={CENTER.first} on={onFirst} />
+          <Base center={CENTER.third} on={onThird} />
+          <Base center={CENTER.home} home />
+          {runners.map((a) => (
+            <Runner key={a.id} from={CENTER[a.from]} to={CENTER[a.to]} onDone={() => clear(a.id)} />
+          ))}
         </View>
       </View>
     </View>
