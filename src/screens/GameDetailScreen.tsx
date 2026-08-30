@@ -4,12 +4,10 @@ import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { League } from '@/api/types';
+import { GameHeaderCard } from '@/components/GameHeaderCard';
 import { LeaderRow } from '@/components/LeaderRow';
-import { LinescoreTable } from '@/components/LinescoreTable';
 import { SituationStrip } from '@/components/SituationStrip';
 import { ErrorState, LoadingState } from '@/components/States';
-import { StatusPill } from '@/components/StatusPill';
-import { TeamRow } from '@/components/TeamRow';
 import { useGameDetail } from '@/hooks/useGameDetail';
 import { useScoreboard } from '@/hooks/useScoreboard';
 
@@ -59,35 +57,10 @@ export function GameDetailScreen() {
 
   const g = q.data;
   const [away, home] = g.competitors;
-  const awayDim = g.state === 'post' && home.isWinner;
-  const homeDim = g.state === 'post' && away.isWinner;
 
   return frame(
     <>
-      <View className="rounded-[12px] border border-line bg-surface p-4">
-        <View className="mb-3 flex-row items-center justify-between">
-          <StatusPill state={g.state} shortDetail={g.shortDetail} startDate={g.startDate} />
-          {g.venue ? (
-            <Text numberOfLines={1} className="ml-3 flex-1 text-right font-mono-rg text-[10px] text-ink-faint">
-              {g.venue}
-            </Text>
-          ) : null}
-        </View>
-        <TeamRow side={away} dim={awayDim} scoreSize={30} />
-        <TeamRow side={home} dim={homeDim} scoreSize={30} />
-
-        {g.periods.length > 0 ? (
-          <View className="mt-3 border-t border-line pt-3">
-            <LinescoreTable
-              periods={g.periods}
-              periodLabel={g.periodLabel}
-              away={away}
-              home={home}
-              currentPeriod={g.currentPeriod}
-            />
-          </View>
-        ) : null}
-      </View>
+      <GameHeaderCard game={g} situation={liveSituation} />
 
       {g.state === 'in' && liveSituation ? (
         <SituationStrip league={g.league} situation={liveSituation} />
