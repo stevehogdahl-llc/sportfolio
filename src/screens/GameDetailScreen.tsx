@@ -60,7 +60,7 @@ export function GameDetailScreen() {
 
   return frame(
     <>
-      <GameHeaderCard game={g} situation={liveSituation} />
+      <GameHeaderCard game={g} />
 
       {g.state === 'in' && liveSituation ? (
         <SituationStrip league={g.league} situation={liveSituation} />

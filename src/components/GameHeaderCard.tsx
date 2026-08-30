@@ -1,29 +1,26 @@
 import { Image } from 'expo-image';
 import { Text, View } from 'react-native';
 
-import type { GameDetail, GameState, Situation, TeamSide } from '@/api/types';
+import type { GameDetail, GameState, TeamSide } from '@/api/types';
 import { fmtStartWithDay } from '@/lib/time';
 import { LinescoreTable } from './LinescoreTable';
 import { ScoreText } from './ScoreText';
 
 type Props = {
   game: GameDetail;
-  /** live bases/count block from the scoreboard feed; null unless in progress */
-  situation: Situation | null;
 };
 
 /**
  * Hero card at the top of the game-detail screen: status badge, both teams with
- * big scores flanking the period/count, and the line score folded in below.
+ * big scores flanking the period, and the line score folded in below.
  */
-export function GameHeaderCard({ game, situation }: Props) {
+export function GameHeaderCard({ game }: Props) {
   const [away, home] = game.competitors;
   const isPost = game.state === 'post';
   const awayDim = isPost && home.isWinner;
   const homeDim = isPost && away.isWinner;
 
   const centerMain = game.state === 'pre' ? fmtStartWithDay(game.startDate) : game.statusDetail;
-  const centerSub = subLine(game.state, situation);
 
   return (
     <View className="rounded-[12px] border border-line bg-surface p-4">
@@ -37,11 +34,6 @@ export function GameHeaderCard({ game, situation }: Props) {
           <Text numberOfLines={1} className="font-display-md text-[15px] text-ink">
             {centerMain}
           </Text>
-          {centerSub ? (
-            <Text className="mt-1 font-mono-rg text-[11px] uppercase tracking-wide text-ink-dim">
-              {centerSub}
-            </Text>
-          ) : null}
         </View>
 
         <ScoreText value={home.score} dim={homeDim} size={42} />
@@ -109,15 +101,4 @@ function TeamBlock({ side }: { side: TeamSide }) {
       </Text>
     </View>
   );
-}
-
-/** Center sub-line under the period: "2-2, 2 outs" (MLB) or "2nd & 7" (NFL). */
-function subLine(state: GameState, s: Situation | null): string | null {
-  if (state !== 'in' || !s) return null;
-  if (s.kind === 'baseball') {
-    if (s.balls == null && s.strikes == null && s.outs == null) return null;
-    const outs = s.outs ?? 0;
-    return `${s.balls ?? 0}-${s.strikes ?? 0}, ${outs} ${outs === 1 ? 'out' : 'outs'}`;
-  }
-  return s.downDistance;
 }
