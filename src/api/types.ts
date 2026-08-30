@@ -42,6 +42,12 @@ export interface Game {
   competitors: [TeamSide, TeamSide];
   /** pregame betting line; null when the feed has none (always null once a game starts) */
   odds?: GameOdds | null;
+  /**
+   * Live bases/count (MLB) or down & distance (NFL). Only the scoreboard feed
+   * carries the full block, so this is populated by `normalizeScoreboard`;
+   * null unless `state === 'in'`.
+   */
+  situation: Situation | null;
 }
 
 export interface PeriodScore {
@@ -76,6 +82,10 @@ export interface Situation {
   onFirst: boolean;
   onSecond: boolean;
   onThird: boolean;
+  /** short name of the batter at the plate, e.g. "C. Jensen"; null between innings */
+  batter: string | null;
+  /** short name of the current pitcher, e.g. "P. Messick"; null between innings */
+  pitcher: string | null;
 
   // football
   /** e.g. "2nd & 7"; null on kickoffs / extra points */
@@ -97,8 +107,6 @@ export interface GameDetail extends Game {
   currentPeriod: number | null;
   leaders: Leader[];
   venue: string | null;
-  /** live bases/count (MLB) or down & distance (NFL); null unless in progress */
-  situation: Situation | null;
 }
 
 /** A team as listed in ESPN's league directory — used for the favorites picker. */

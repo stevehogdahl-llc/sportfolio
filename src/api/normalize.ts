@@ -133,6 +133,7 @@ function normalizeEvent(league: League, ev: unknown): Game | null {
     startDate,
     competitors: [sides[0], sides[1]],
     odds: state === 'pre' ? normalizeOdds(comp) : null,
+    situation: state === 'in' ? normalizeSituation(league, dig(comp, 'situation'), sides) : null,
   };
 }
 
@@ -194,23 +195,29 @@ export function normalizeSummary(league: League, eventId: string, raw: unknown):
     currentPeriod: state === 'in' ? parseOrdinalPeriod(statusDetail || shortDetail) : null,
     leaders: normalizeLeaders(dig(raw, 'leaders')),
     venue,
-    situation:
-      state === 'in' ? normalizeSituation(league, dig(raw, 'situation') ?? dig(comp, 'situation'), sides) : null,
+    // The summary feed's `situation` is a stripped-down stub (no base state, no
+    // player names); the live strip reads the full block from the scoreboard feed.
+    situation: null,
   };
 }
 
 const ORDINAL = ['', '1st', '2nd', '3rd', '4th'];
 
 /**
- * Live `situation` block. The summary feed carries it top-level while a game is
- * in progress (the scoreboard feed hangs it off `competition.situation`); shape
- * differs by sport, so both halves of {@link Situation} are filled defensively.
+ * Live `competition.situation` block from the scoreboard feed (the summary feed
+ * only carries a stub). Shape differs by sport, so both halves of
+ * {@link Situation} are filled defensively.
  */
 function normalizeSituation(league: League, raw: unknown, sides: TeamSide[]): Situation | null {
   if (raw == null || typeof raw !== 'object') return null;
   const s = raw as Dict;
 
   const lastPlay = asStr(dig(s, 'lastPlay', 'text')) || null;
+
+  const athleteName = (who: 'batter' | 'pitcher'): string | null =>
+    asStr(dig(s, who, 'athlete', 'shortName')) ||
+    asStr(dig(s, who, 'athlete', 'displayName')) ||
+    null;
 
   if (league === 'nfl') {
     const possId = asStr(dig(s, 'possession')) || asStr(dig(s, 'lastPlay', 'team', 'id'));
@@ -233,6 +240,8 @@ function normalizeSituation(league: League, raw: unknown, sides: TeamSide[]): Si
       onFirst: false,
       onSecond: false,
       onThird: false,
+      batter: null,
+      pitcher: null,
       downDistance,
       ballSpot: asStr(dig(s, 'possessionText')) || null,
       possessionAbbrev: holder?.abbrev ?? null,
@@ -251,6 +260,8 @@ function normalizeSituation(league: League, raw: unknown, sides: TeamSide[]): Si
     onFirst: dig(s, 'onFirst') === true,
     onSecond: dig(s, 'onSecond') === true,
     onThird: dig(s, 'onThird') === true,
+    batter: athleteName('batter'),
+    pitcher: athleteName('pitcher'),
     downDistance: null,
     ballSpot: null,
     possessionAbbrev: null,

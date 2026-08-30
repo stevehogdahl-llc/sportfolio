@@ -11,6 +11,7 @@ import { ErrorState, LoadingState } from '@/components/States';
 import { StatusPill } from '@/components/StatusPill';
 import { TeamRow } from '@/components/TeamRow';
 import { useGameDetail } from '@/hooks/useGameDetail';
+import { useScoreboard } from '@/hooks/useScoreboard';
 
 const isLeague = (v: unknown): v is League => v === 'mlb' || v === 'nfl';
 
@@ -32,6 +33,10 @@ export function GameDetailScreen() {
   const id = typeof params.id === 'string' ? params.id : '';
 
   const q = useGameDetail(league, id);
+  // The live bases/count block only comes on the scoreboard feed; pull it from
+  // the same (polling) query the league tab uses and match this game by id.
+  const sb = useScoreboard(league);
+  const liveSituation = sb.data?.find((game) => game.id === id)?.situation ?? null;
 
   const frame = (children: ReactNode, title = 'Game') => (
     <>
@@ -72,8 +77,8 @@ export function GameDetailScreen() {
         <TeamRow side={home} dim={homeDim} scoreSize={30} />
       </View>
 
-      {g.state === 'in' && g.situation ? (
-        <SituationStrip league={g.league} situation={g.situation} />
+      {g.state === 'in' && liveSituation ? (
+        <SituationStrip league={g.league} situation={liveSituation} />
       ) : null}
 
       {g.periods.length > 0 ? (
