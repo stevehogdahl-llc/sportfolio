@@ -38,13 +38,31 @@ function BaseballSituation({ s }: { s: Situation }) {
 
   return (
     <View>
-      <View className="flex-row items-center justify-center gap-2">
-        <PlayerChip role="P" name={s.pitcher} align="right" />
-        <Diamond onFirst={s.onFirst} onSecond={s.onSecond} onThird={s.onThird} />
-        <PlayerChip role="AB" name={s.batter} align="left" />
+      <View className="items-center">
+        <View className="h-[140px] w-[160px] items-center justify-center">
+          {s.pitcher ? (
+            <View className="absolute top-0 items-center">
+              <RoleChip label="P" />
+              <Text numberOfLines={1} className="mt-0.5 max-w-[150px] text-[12px] font-semibold text-ink">
+                {s.pitcher}
+              </Text>
+            </View>
+          ) : null}
+
+          <Diamond onFirst={s.onFirst} onSecond={s.onSecond} onThird={s.onThird} />
+
+          {s.batter ? (
+            <View className="absolute bottom-0 items-center">
+              <RoleChip label="AB" />
+              <Text numberOfLines={1} className="mt-0.5 max-w-[150px] text-[12px] font-semibold text-ink">
+                {s.batter}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
 
-      <View className="mt-3 flex-row justify-around border-t border-line pt-3">
+      <View className="mt-2 flex-row justify-around border-t border-line pt-3">
         {COUNT_COLUMNS.map((col) => (
           <CountColumn key={col.key} col={col} value={s[col.key] ?? 0} />
         ))}
@@ -53,23 +71,11 @@ function BaseballSituation({ s }: { s: Situation }) {
   );
 }
 
-/** Pitcher / batter label flanking the diamond, echoing the mockup's chips. */
-function PlayerChip({
-  role,
-  name,
-  align,
-}: {
-  role: string;
-  name: string | null;
-  align: 'left' | 'right';
-}) {
-  if (!name) return <View className="w-16" />;
+/** Small label chip (`P` / `AB`) that sits above a player name on the figure. */
+function RoleChip({ label }: { label: string }) {
   return (
-    <View className={`w-16 ${align === 'left' ? 'items-start' : 'items-end'}`}>
-      <Text className="font-mono-rg text-[9px] uppercase tracking-wider text-ink-faint">{role}</Text>
-      <Text numberOfLines={1} className="text-[12px] font-semibold text-ink">
-        {name}
-      </Text>
+    <View className="rounded-[4px] bg-surface-2 px-1.5 py-px">
+      <Text className="font-mono-md text-[9px] uppercase tracking-wider text-ink-dim">{label}</Text>
     </View>
   );
 }
