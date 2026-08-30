@@ -47,6 +47,12 @@ Add an iOS home screen widget that shows the user's tracked games ("portfolio") 
 
 ## 4. Phase 1 — Native scaffolding
 
+> **Status (2026-08-29): DONE, compile-verified.** `@bacons/apple-targets@5.0.0` installed; `targets/widget/` created (`expo-target.config.js`, `SportfolioWidget.swift`, generated `Assets.xcassets` + `Info.plist`); App Group `group.com.stevehogdahlllc.sportfolio` on app + widget; `expo prebuild -p ios --clean` regenerates `ios/` with the widget linked and embedded ("Embed Foundation Extensions" phase + target dependency); `xcodebuild -scheme SportfolioWidget … CODE_SIGNING_ALLOWED=NO` → **BUILD SUCCEEDED**, `SportfolioWidget.appex` produced. `npm run typecheck` passes; `web` script untouched.
+>
+> **Not yet done:** full `expo run:ios` + visual gallery check — needs `ios.appleTeamId` in `app.json` for signing the extension.
+>
+> **Environment gotcha (this machine):** CocoaPods was 1.11.3 on RVM Ruby 2.7.6 — too old for SDK 54 (`pod install` failed on `react-native-safe-area-context`'s `visionos` podspec line). Fixed with `brew upgrade cocoapods` → 1.17.0 (brew vendors its own Ruby). RVM's `pod`/`xcodeproj` gems were removed to un-shadow the brew binaries, **but** RVM still exports `GEM_HOME`/`GEM_PATH`, which break brew's `pod` (`Could not find 'rexml'`). Until RVM is reconfigured, run prebuild/pod/xcodebuild with `env -u GEM_HOME -u GEM_PATH …`.
+
 Goal: an empty widget target that builds and appears in the widget gallery.
 
 1. Install the config plugin:
@@ -68,25 +74,32 @@ Goal: an empty widget target that builds and appears in the widget gallery.
      }
    }
    ```
-3. Create `targets/widget/expo-target.config.js`:
+3. Create `targets/widget/expo-target.config.js` (v5 type path is `@bacons/apple-targets/app.plugin`; the function form mirrors the app's app-group array):
    ```js
-   /** @type {import('@bacons/apple-targets').Config} */
-   module.exports = {
+   /** @type {import('@bacons/apple-targets/app.plugin').ConfigFunction} */
+   module.exports = (config) => ({
      type: "widget",
      name: "SportfolioWidget",
+     displayName: "Sportfolio",
      deploymentTarget: "17.0",
-     entitlements: {
-       "com.apple.security.application-groups": [
-         "group.com.stevehogdahlllc.sportfolio",
-       ],
+     frameworks: ["SwiftUI", "WidgetKit"],
+     colors: {
+       $accent: { color: "#e0a83e", darkColor: "#e0a83e" },
+       widgetBackground: { color: "#ffffff", darkColor: "#0e1117" },
      },
-   };
+     entitlements: {
+       "com.apple.security.application-groups":
+         config.ios?.entitlements?.["com.apple.security.application-groups"] ?? [
+           "group.com.stevehogdahlllc.sportfolio",
+         ],
+     },
+   });
    ```
-4. Add placeholder Swift so the target compiles (`targets/widget/index.swift` with a trivial static widget).
-5. Regenerate and run:
+4. Add placeholder Swift so the target compiles (`targets/widget/SportfolioWidget.swift` with a trivial `StaticConfiguration` widget + `@main WidgetBundle`).
+5. Regenerate and run (drop the `env -u …` prefix once RVM is sorted):
    ```bash
-   npx expo prebuild -p ios --clean
-   npx expo run:ios
+   env -u GEM_HOME -u GEM_PATH npx expo prebuild -p ios --clean
+   env -u GEM_HOME -u GEM_PATH npx expo run:ios
    ```
 6. Add the widget to the simulator home screen to confirm it loads.
 
@@ -96,26 +109,34 @@ Goal: an empty widget target that builds and appears in the widget gallery.
 
 ## 5. Phase 2 — Widget UI in Swift
 
-Files under `targets/widget/`:
+> **Status (2026-08-30): DONE, compile-verified.** `xcodebuild -scheme SportfolioWidget … CODE_SIGNING_ALLOWED=NO` → **BUILD SUCCEEDED**; `.appex` now carries a real `Assets.car` + SwiftUI views. No warnings/errors from `targets/widget/`. Visual check in the simulator still pending `ios.appleTeamId`.
+
+Files under `targets/widget/` (as built):
 
 | File | Responsibility |
 |---|---|
-| `index.swift` | `@main struct SportfolioWidgetBundle: WidgetBundle` |
-| `Provider.swift` | `TimelineProvider` — `placeholder`, `getSnapshot`, `getTimeline`; reads shared store |
-| `Model.swift` | `GameEntry: TimelineEntry`, `PortfolioGame` Codable struct — **must mirror the TS type exactly** |
-| `SharedStore.swift` | thin wrapper over `UserDefaults(suiteName:)`, JSON decode, sample data |
-| `WidgetViews.swift` | `SmallView`, `MediumView`, `LargeView` + a `switch widgetFamily` entry view |
-| `Assets.xcassets` | accent color, team-neutral logo fallback |
+| `SportfolioWidget.swift` | `SportfolioWidget: Widget` (`StaticConfiguration`) + `@main SportfolioWidgetBundle: WidgetBundle` |
+| `Model.swift` | `WidgetPayload` / `WidgetGame` / `WidgetTeam` Codable + `LeagueID` / `GameState` enums + `GameEntry: TimelineEntry`; **mirrors `src/widget/contract.ts`** (Phase 3). ISO-8601 parsed manually (`.iso8601` strategy rejects JS millisecond timestamps). |
+| `SharedStore.swift` | reads `UserDefaults(suiteName:)` — tries `data(forKey:)` then `string(forKey:)` because `ExtensionStorage` stores objects as JSON `Data`, strings as `String`; plus `WidgetPayload.sample` |
+| `Provider.swift` | `PortfolioProvider: TimelineProvider` — `placeholder`/`getSnapshot` fall back to sample when `isPreview`; `getTimeline` = single entry, `.after(15 min)` safety net |
+| `WidgetViews.swift` | `SportfolioWidgetEntryView` switches on `widgetFamily`: `SmallWidgetView` (featured game, `.widgetURL`), `GameListView` (medium=3 / large=8 rows, per-row `Link`), shared `HeaderView`/`TeamLine`/`StatusLabel`/`EmptyStateView`; `#Preview` for all three families |
+| `Assets.xcassets` | `$accent.colorset` (#e0a83e), `$widgetBackground.colorset` (#fff / #0e1117) — generated from `expo-target.config.js` |
 
 Details:
 
-- `placeholder(in:)` and `getSnapshot` return **sample data** (redacted-looking, plausible) so the gallery preview and Lock Screen picker look right.
-- `getTimeline` reads the shared blob; if missing/stale, render an "Open Sportfolio to sync" state.
-- Timeline policy: single entry with `.after(Date().addingTimeInterval(900))` as a safety net; real updates come from the app calling reload.
-- Use `.containerBackground(for: .widget)` (iOS 17) and support `.systemSmall/.systemMedium/.systemLarge`. Optionally add `.accessoryRectangular` for the Lock Screen later.
-- Localize nothing hard-coded that the app already localizes; keep copy minimal.
+- `placeholder(in:)` and `getSnapshot` return **sample data** so the gallery preview and picker aren't blank.
+- `getTimeline` reads the shared blob; `payload == nil` → "Open Sportfolio to sync"; `payload.games` empty → "No games tracked yet".
+- Timeline policy: single entry with `.after(15 min)` safety net; real updates come from the app calling reload.
+- `.containerBackground(Color("$widgetBackground"), for: .widget)`, families `.systemSmall/.systemMedium/.systemLarge`. `.accessoryRectangular` is a later add.
+- Deep links: `sportfolio://game/<id>` — small via `.widgetURL`, medium/large via per-row `Link`.
 
-**Exit criteria:** all three families render sample data correctly in light/dark.
+### Gotchas hit in Phases 1–2
+
+- **`@bacons/apple-targets` color config uses `{ light, dark }`**, not `{ color, darkColor }`. Wrong keys silently produce an empty colorset. The special names are `$accent` and `$widgetBackground` (the `$`-prefix wires the `ASSETCATALOG_COMPILER_*_COLOR_NAME` build settings).
+- **Always run `expo prebuild -p ios --clean`** with this plugin. An incremental `prebuild` (no `--clean`) over an existing target crashes in `applyXcodeChanges` (`Cannot read properties of undefined (reading 'removeFromProject')`). `--no-install` is fine *with* `--clean`; on its own it still hits the incremental path.
+- Cross-file "Cannot find type in scope" from SourceKit in the editor are false positives (per-file analysis without target module context); `xcodebuild` compiles the target as one module and is the source of truth.
+
+**Exit criteria:** all three families render sample data correctly in light/dark. *(compile-verified; on-device render check deferred to the Team-ID run.)*
 
 ## 6. Phase 3 — RN ↔ widget data bridge
 
