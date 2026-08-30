@@ -1,4 +1,5 @@
-import { Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Text, View } from 'react-native';
 
 import type { League, Situation } from '@/api/types';
 
@@ -37,14 +38,11 @@ function BaseballSituation({ s }: { s: Situation }) {
 
   return (
     <View>
-      <Diamond onFirst={s.onFirst} onSecond={s.onSecond} onThird={s.onThird} />
-
-      {s.batter || s.pitcher ? (
-        <View className="mt-1 gap-0.5">
-          {s.batter ? <MatchupLine label="AB" name={s.batter} /> : null}
-          {s.pitcher ? <MatchupLine label="P" name={s.pitcher} /> : null}
-        </View>
-      ) : null}
+      <View className="flex-row items-center justify-center gap-2">
+        <PlayerChip role="P" name={s.pitcher} align="right" />
+        <Diamond onFirst={s.onFirst} onSecond={s.onSecond} onThird={s.onThird} />
+        <PlayerChip role="AB" name={s.batter} align="left" />
+      </View>
 
       <View className="mt-3 flex-row justify-around border-t border-line pt-3">
         {COUNT_COLUMNS.map((col) => (
@@ -55,16 +53,44 @@ function BaseballSituation({ s }: { s: Situation }) {
   );
 }
 
-function MatchupLine({ label, name }: { label: string; name: string }) {
+/** Pitcher / batter label flanking the diamond, echoing the mockup's chips. */
+function PlayerChip({
+  role,
+  name,
+  align,
+}: {
+  role: string;
+  name: string | null;
+  align: 'left' | 'right';
+}) {
+  if (!name) return <View className="w-16" />;
   return (
-    <View className="flex-row items-baseline gap-2">
-      <Text className="w-6 font-mono-rg text-[10px] uppercase text-ink-faint">{label}</Text>
-      <Text numberOfLines={1} className="flex-1 text-[13px] font-semibold text-ink">
+    <View className={`w-16 ${align === 'left' ? 'items-start' : 'items-end'}`}>
+      <Text className="font-mono-rg text-[9px] uppercase tracking-wider text-ink-faint">{role}</Text>
+      <Text numberOfLines={1} className="text-[12px] font-semibold text-ink">
         {name}
       </Text>
     </View>
   );
 }
+
+// Infield geometry, in the (pre-rotation) local space of the 82px square.
+const S = 82;
+const BASE = 18;
+const RUNNER = 12;
+
+type BaseKey = 'first' | 'second' | 'third' | 'home';
+type Pt = { x: number; y: number };
+
+/** Base centers on the square's corners; after a 45° rotate they point N/E/S/W. */
+const CENTER: Record<BaseKey, Pt> = {
+  second: { x: 0, y: 0 },
+  first: { x: S, y: 0 },
+  third: { x: 0, y: S },
+  home: { x: S, y: S },
+};
+
+type Advance = { id: number; from: BaseKey; to: BaseKey };
 
 /** Faux-3D infield: a square tilted back in perspective and rotated to a diamond. */
 function Diamond({
@@ -76,28 +102,116 @@ function Diamond({
   onSecond: boolean;
   onThird: boolean;
 }) {
-  const baseCls = (occupied: boolean) =>
-    `absolute h-[18px] w-[18px] rounded-[3px] border ${
-      occupied ? 'border-mlb bg-mlb' : 'border-ink-faint bg-surface'
-    }`;
+  const prev = useRef({ first: onFirst, second: onSecond, third: onThird });
+  const [runners, setRunners] = useState<Advance[]>([]);
+  const idRef = useRef(0);
+
+  useEffect(() => {
+    const p = prev.current;
+    const next: Advance[] = [];
+    // Animate a runner into any base that just became occupied.
+    if (!p.first && onFirst) next.push({ id: idRef.current++, from: 'home', to: 'first' });
+    if (!p.second && onSecond) next.push({ id: idRef.current++, from: 'first', to: 'second' });
+    if (!p.third && onThird) next.push({ id: idRef.current++, from: 'second', to: 'third' });
+    prev.current = { first: onFirst, second: onSecond, third: onThird };
+    if (next.length) setRunners((r) => [...r, ...next]);
+  }, [onFirst, onSecond, onThird]);
+
+  const clear = useCallback(
+    (id: number) => setRunners((r) => r.filter((x) => x.id !== id)),
+    [],
+  );
 
   return (
-    <View className="h-[116px] items-center justify-center overflow-hidden">
+    <View className="h-[116px] w-[124px] items-center justify-center overflow-hidden">
       <View style={{ transform: [{ perspective: 720 }, { rotateX: '54deg' }] }}>
         <View className="h-[96px] w-[96px] items-center justify-center">
-          {/* infield: a square rotated 45° so its corners point N/E/S/W */}
           <View className="h-[82px] w-[82px] rotate-45 rounded-[10px] border border-line bg-surface-2">
-            {/* pitcher's mound */}
-            <View className="absolute left-1/2 top-1/2 -ml-[7px] -mt-[7px] h-[14px] w-[14px] rounded-full border border-line bg-surface" />
-            {/* bases sit on the infield's rotated corners: N=2B, E=1B, S=home, W=3B */}
-            <View className={`${baseCls(onSecond)} -left-[9px] -top-[9px]`} />
-            <View className={`${baseCls(onFirst)} -right-[9px] -top-[9px]`} />
-            <View className={`${baseCls(onThird)} -bottom-[9px] -left-[9px]`} />
-            <View className="absolute -bottom-[9px] -right-[9px] h-[18px] w-[18px] rounded-[3px] border-2 border-ink-dim bg-surface" />
+            <Dot center={{ x: S / 2, y: S / 2 }} size={14} className="border border-line bg-surface" />
+            <Base center={CENTER.second} on={onSecond} />
+            <Base center={CENTER.first} on={onFirst} />
+            <Base center={CENTER.third} on={onThird} />
+            <Base center={CENTER.home} home />
+            {runners.map((a) => (
+              <Runner key={a.id} from={CENTER[a.from]} to={CENTER[a.to]} onDone={() => clear(a.id)} />
+            ))}
           </View>
         </View>
       </View>
     </View>
+  );
+}
+
+function Dot({
+  center,
+  size,
+  className,
+}: {
+  center: Pt;
+  size: number;
+  className: string;
+}) {
+  return (
+    <View
+      style={{ position: 'absolute', left: center.x - size / 2, top: center.y - size / 2, width: size, height: size }}
+      className={`rounded-full ${className}`}
+    />
+  );
+}
+
+function Base({ center, on, home }: { center: Pt; on?: boolean; home?: boolean }) {
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        left: center.x - BASE / 2,
+        top: center.y - BASE / 2,
+        width: BASE,
+        height: BASE,
+      }}
+      className={
+        home
+          ? 'rounded-[3px] border-2 border-ink-dim bg-surface'
+          : on
+            ? 'rounded-[3px] border border-mlb bg-mlb'
+            : 'rounded-[3px] border border-ink-faint bg-surface'
+      }
+    />
+  );
+}
+
+/** A runner marker tweening from one base to the next, then removed. */
+function Runner({ from, to, onDone }: { from: Pt; to: Pt; onDone: () => void }) {
+  const t = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const anim = Animated.timing(t, {
+      toValue: 1,
+      duration: 620,
+      easing: Easing.inOut(Easing.quad),
+      useNativeDriver: true,
+    });
+    anim.start(({ finished }) => {
+      if (finished) onDone();
+    });
+    return () => anim.stop();
+  }, [t, onDone]);
+
+  return (
+    <Animated.View
+      style={{
+        position: 'absolute',
+        left: from.x - RUNNER / 2,
+        top: from.y - RUNNER / 2,
+        width: RUNNER,
+        height: RUNNER,
+        transform: [
+          { translateX: t.interpolate({ inputRange: [0, 1], outputRange: [0, to.x - from.x] }) },
+          { translateY: t.interpolate({ inputRange: [0, 1], outputRange: [0, to.y - from.y] }) },
+        ],
+      }}
+      className="rounded-full bg-mlb"
+    />
   );
 }
 
@@ -127,9 +241,7 @@ function CountColumn({ col, value }: { col: CountCol; value: number }) {
         {PIPS.map((i) => (
           <View
             key={i}
-            className={`h-3.5 w-3.5 rounded-full ${
-              i < value ? col.on : 'border border-ink-faint'
-            }`}
+            className={`h-3.5 w-3.5 rounded-full ${i < value ? col.on : 'border border-ink-faint'}`}
           />
         ))}
       </View>
