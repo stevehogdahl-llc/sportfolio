@@ -6,6 +6,7 @@ import type {
   Leader,
   League,
   PeriodScore,
+  Situation,
   TeamSide,
 } from './types';
 
@@ -74,7 +75,15 @@ function normalizeCompetitor(c: unknown, state: GameState): TeamSide {
     record,
     isWinner: dig(c, 'winner') === true,
     homeAway: asStr(dig(c, 'homeAway')) === 'home' ? 'home' : 'away',
+    hits: state === 'pre' ? null : asNumOrNull(dig(c, 'hits')),
+    errors: state === 'pre' ? null : asNumOrNull(dig(c, 'errors')),
   };
+}
+
+/** Leading ordinal in a status string: "Top 7th" → 7, "2nd Quarter" → 2. */
+function parseOrdinalPeriod(text: string): number | null {
+  const m = text.match(/(\d+)\s*(?:st|nd|rd|th)/i);
+  return m ? Number(m[1]) : null;
 }
 
 function statusFields(statusType: unknown, startDate: string) {
@@ -154,9 +163,17 @@ export function normalizeSummary(league: League, eventId: string, raw: unknown):
 
   const awayLs = asArr(dig(rawCompetitors[0], 'linescores'));
   const homeLs = asArr(dig(rawCompetitors[1], 'linescores'));
+  // MLB box scores always show a full 9-inning grid once play starts; innings not
+  // yet played render as blank cells. Extra innings extend past 9 as usual.
+  const minPeriods = league === 'mlb' && state !== 'pre' ? 9 : 0;
+  const periodCount = Math.max(awayLs.length, homeLs.length, minPeriods);
   const periods: PeriodScore[] = [];
-  for (let i = 0; i < Math.max(awayLs.length, homeLs.length); i++) {
-    periods.push({ label: String(i + 1), away: lineValue(awayLs[i]), home: lineValue(homeLs[i]) });
+  for (let i = 0; i < periodCount; i++) {
+    periods.push({
+      label: String(i + 1),
+      away: i < awayLs.length ? lineValue(awayLs[i]) : '',
+      home: i < homeLs.length ? lineValue(homeLs[i]) : '',
+    });
   }
 
   const venue =
@@ -174,8 +191,72 @@ export function normalizeSummary(league: League, eventId: string, raw: unknown):
     competitors: [sides[0], sides[1]],
     periods,
     periodLabel: league === 'nfl' ? 'Q' : 'Inn',
+    currentPeriod: state === 'in' ? parseOrdinalPeriod(statusDetail || shortDetail) : null,
     leaders: normalizeLeaders(dig(raw, 'leaders')),
     venue,
+    situation:
+      state === 'in' ? normalizeSituation(league, dig(raw, 'situation') ?? dig(comp, 'situation'), sides) : null,
+  };
+}
+
+const ORDINAL = ['', '1st', '2nd', '3rd', '4th'];
+
+/**
+ * Live `situation` block. The summary feed carries it top-level while a game is
+ * in progress (the scoreboard feed hangs it off `competition.situation`); shape
+ * differs by sport, so both halves of {@link Situation} are filled defensively.
+ */
+function normalizeSituation(league: League, raw: unknown, sides: TeamSide[]): Situation | null {
+  if (raw == null || typeof raw !== 'object') return null;
+  const s = raw as Dict;
+
+  const lastPlay = asStr(dig(s, 'lastPlay', 'text')) || null;
+
+  if (league === 'nfl') {
+    const possId = asStr(dig(s, 'possession')) || asStr(dig(s, 'lastPlay', 'team', 'id'));
+    const holder = sides.find((t) => t.id && t.id === possId) ?? null;
+    const down = asNumOrNull(dig(s, 'down'));
+    const distance = asNumOrNull(dig(s, 'distance'));
+    const downDistance =
+      asStr(dig(s, 'shortDownDistanceText')) ||
+      (down != null && down >= 1 && down <= 4
+        ? `${ORDINAL[down]} & ${distance ?? 10}`
+        : '') ||
+      null;
+
+    return {
+      kind: 'football',
+      lastPlay,
+      balls: null,
+      strikes: null,
+      outs: null,
+      onFirst: false,
+      onSecond: false,
+      onThird: false,
+      downDistance,
+      ballSpot: asStr(dig(s, 'possessionText')) || null,
+      possessionAbbrev: holder?.abbrev ?? null,
+      isRedZone: dig(s, 'isRedZone') === true,
+      homeTimeouts: asNumOrNull(dig(s, 'homeTimeouts')),
+      awayTimeouts: asNumOrNull(dig(s, 'awayTimeouts')),
+    };
+  }
+
+  return {
+    kind: 'baseball',
+    lastPlay,
+    balls: asNumOrNull(dig(s, 'balls')),
+    strikes: asNumOrNull(dig(s, 'strikes')),
+    outs: asNumOrNull(dig(s, 'outs')),
+    onFirst: dig(s, 'onFirst') === true,
+    onSecond: dig(s, 'onSecond') === true,
+    onThird: dig(s, 'onThird') === true,
+    downDistance: null,
+    ballSpot: null,
+    possessionAbbrev: null,
+    isRedZone: false,
+    homeTimeouts: null,
+    awayTimeouts: null,
   };
 }
 
