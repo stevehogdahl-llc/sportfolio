@@ -1,69 +1,125 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Tabs } from 'expo-router';
+import {
+  createMaterialTopTabNavigator,
+  type MaterialTopTabBarProps,
+  type MaterialTopTabNavigationEventMap,
+  type MaterialTopTabNavigationOptions,
+} from '@react-navigation/material-top-tabs';
+import type { ParamListBase, TabNavigationState } from '@react-navigation/native';
+import { withLayoutContext } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { tabLabel, usePalette } from '@/constants/theme';
-import { ALL_TABS, type TabKey, useTabs } from '@/settings';
+import { type TabKey, useTabs } from '@/settings';
 
 type TabMeta = {
-  href: '/mlb' | '/nfl' | '/favorites';
   icon: keyof typeof Ionicons.glyphMap;
   color: 'mlb' | 'nfl';
 };
 
 const TAB_META: Record<TabKey, TabMeta> = {
-  mlb: { href: '/mlb', icon: 'baseball', color: 'mlb' },
-  nfl: { href: '/nfl', icon: 'american-football', color: 'nfl' },
-  favorites: { href: '/favorites', icon: 'star', color: 'mlb' },
+  mlb: { icon: 'baseball', color: 'mlb' },
+  nfl: { icon: 'american-football', color: 'nfl' },
+  favorites: { icon: 'star', color: 'mlb' },
 };
 
-function sportIcon(name: keyof typeof Ionicons.glyphMap, color: string) {
-  function Icon({ focused }: { focused: boolean }) {
-    return (
-      <Ionicons
-        name={name}
-        size={focused ? 26 : 22}
-        color={color}
-        style={{ opacity: focused ? 1 : 0.45 }}
-      />
-    );
-  }
-  return Icon;
+const { Navigator } = createMaterialTopTabNavigator();
+
+// Material top tabs ride on react-native-pager-view, so the scenes swipe
+// horizontally. We park the tab bar at the bottom and paint it ourselves to
+// keep the exact look of the old bottom tabs. `useOnlyUserDefinedScreens`
+// (third arg) means only the <Tabs.Screen> we list below are mounted — disabled
+// tabs simply aren't in the pager.
+const Tabs = withLayoutContext<
+  MaterialTopTabNavigationOptions,
+  typeof Navigator,
+  TabNavigationState<ParamListBase>,
+  MaterialTopTabNavigationEventMap
+>(Navigator, undefined, true);
+
+function TabBar({ state, descriptors, navigation }: MaterialTopTabBarProps) {
+  const palette = usePalette();
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        backgroundColor: palette.surface,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: palette.line,
+        paddingBottom: insets.bottom,
+      }}
+    >
+      {state.routes.map((route, index) => {
+        const focused = state.index === index;
+        const { options } = descriptors[route.key];
+        const meta = TAB_META[route.name as TabKey];
+        const label = options.title ?? route.name;
+
+        const onPress = () => {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+          if (!focused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        return (
+          <Pressable
+            key={route.key}
+            accessibilityRole="button"
+            accessibilityState={{ selected: focused }}
+            accessibilityLabel={options.tabBarAccessibilityLabel}
+            onPress={onPress}
+            style={{
+              flex: 1,
+              height: 49,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            <Ionicons
+              name={meta.icon}
+              size={focused ? 26 : 22}
+              color={palette[meta.color]}
+              style={{ opacity: focused ? 1 : 0.45 }}
+            />
+            <Text
+              style={{
+                fontFamily: 'Oswald_500Medium',
+                fontSize: 15,
+                color: focused ? palette.ink : palette.inkFaint,
+              }}
+            >
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
 }
 
 export default function TabsLayout() {
   const palette = usePalette();
   const enabled = useTabs();
 
-  // Enabled tabs first, in the user's order; disabled ones still render
-  // (their route files must exist) but are hidden with `href: null`.
-  const ordered: TabKey[] = [...enabled, ...ALL_TABS.filter((t) => !enabled.includes(t))];
-
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        sceneStyle: { backgroundColor: palette.background },
-        tabBarStyle: { backgroundColor: palette.surface, borderTopColor: palette.line },
-        tabBarActiveTintColor: palette.ink,
-        tabBarInactiveTintColor: palette.inkFaint,
-        tabBarLabelPosition: 'beside-icon',
-        tabBarLabelStyle: { fontFamily: 'Oswald_500Medium', fontSize: 15 },
-      }}
+      tabBar={(props) => <TabBar {...props} />}
+      tabBarPosition="bottom"
+      screenOptions={{ sceneStyle: { backgroundColor: palette.background } }}
     >
-      {ordered.map((tab) => {
-        const meta = TAB_META[tab];
-        return (
-          <Tabs.Screen
-            key={tab}
-            name={tab}
-            options={{
-              title: tabLabel[tab],
-              href: enabled.includes(tab) ? meta.href : null,
-              tabBarIcon: sportIcon(meta.icon, palette[meta.color]),
-            }}
-          />
-        );
-      })}
+      {enabled.map((tab) => (
+        <Tabs.Screen key={tab} name={tab} options={{ title: tabLabel[tab] }} />
+      ))}
     </Tabs>
   );
 }
