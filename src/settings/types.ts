@@ -35,6 +35,8 @@ export interface Settings {
   theme: ThemePref;
   cardDensity: CardDensity;
   showRecords: boolean;
+  /** Show the pregame spread / over-under on scoreboard cards. */
+  showOdds: boolean;
   openTo: OpenTo;
   /** Bottom tabs in display order. Always contains at least one league. */
   tabs: TabKey[];

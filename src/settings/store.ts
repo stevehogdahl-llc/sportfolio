@@ -21,6 +21,7 @@ interface SettingsActions {
   setTheme: (theme: ThemePref) => void;
   setCardDensity: (density: CardDensity) => void;
   setShowRecords: (value: boolean) => void;
+  setShowOdds: (value: boolean) => void;
   setOpenTo: (openTo: OpenTo) => void;
   /** Invalid input is coerced; always keeps at least one league. */
   setTabs: (tabs: TabKey[]) => void;
@@ -53,6 +54,7 @@ export const useSettingsStore = create<SettingsState>()(
       setTheme: (theme) => set({ theme }),
       setCardDensity: (cardDensity) => set({ cardDensity }),
       setShowRecords: (showRecords) => set({ showRecords }),
+      setShowOdds: (showOdds) => set({ showOdds }),
       setOpenTo: (openTo) => set({ openTo }),
       setTabs: (tabs) =>
         set((s) => {
@@ -91,6 +93,7 @@ export const useSettingsStore = create<SettingsState>()(
         theme: s.theme,
         cardDensity: s.cardDensity,
         showRecords: s.showRecords,
+        showOdds: s.showOdds,
         openTo: s.openTo,
         tabs: s.tabs,
         lastLeague: s.lastLeague,
