@@ -79,8 +79,8 @@ export default function RootLayout() {
               {/* Settings screens live on the root stack so each gets the standard
                   native back button, same as the game-detail screen. */}
               <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
-              <Stack.Screen name="settings/leagues" options={{ title: 'Tabs' }} />
-              <Stack.Screen name="settings/favorites" options={{ title: 'Favorite Teams' }} />
+              <Stack.Screen name="settings/leagues" options={{ title: 'Display' }} />
+              <Stack.Screen name="settings/favorites" options={{ title: 'Favorites' }} />
               <Stack.Screen name="settings/notifications" options={{ title: 'Notifications' }} />
               <Stack.Screen name="settings/about" options={{ title: 'About' }} />
             </Stack>

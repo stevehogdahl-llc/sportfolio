@@ -45,14 +45,14 @@ export default function SettingsHub() {
     >
       <SettingsSection title="Scoreboard">
         <SettingsLink
-          label="Tabs"
-          value={tabs.map((t) => tabLabel[t]).join(', ')}
-          onPress={() => router.push('/settings/leagues')}
-        />
-        <SettingsLink
-          label="Favorite teams"
+          label="Favorites"
           value={favoritesCount > 0 ? String(favoritesCount) : 'None'}
           onPress={() => router.push('/settings/favorites')}
+        />
+        <SettingsLink
+          label="Display"
+          value={tabs.map((t) => tabLabel[t]).join(', ')}
+          onPress={() => router.push('/settings/leagues')}
         />
         <SettingsSwitch
           label="Team records"
