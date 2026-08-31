@@ -70,12 +70,17 @@ function LeagueFavorites({
     [favSet, league],
   );
 
+  // Snapshot of what was favorited when the screen opened. Row order is frozen
+  // against this for the whole visit: reordering the instant a star is tapped
+  // makes the row look like it vanishes. It settles next time the screen opens.
+  const [openingFavSet] = useState(() => new Set(favorites));
+
   // Favorited teams first, otherwise the bundled list's alphabetical order.
   const ordered = useMemo(() => {
     const teams = getLeagueTeams(league);
-    const isFav = (t: TeamRef) => favSet.has(favoriteKey(league, t.id));
+    const isFav = (t: TeamRef) => openingFavSet.has(favoriteKey(league, t.id));
     return [...teams.filter(isFav), ...teams.filter((t) => !isFav(t))];
-  }, [favSet, league]);
+  }, [openingFavSet, league]);
 
   return (
     <View className="mt-4">
