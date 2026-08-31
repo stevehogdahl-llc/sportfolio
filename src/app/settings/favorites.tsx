@@ -5,7 +5,7 @@ import { LayoutAnimation, Pressable, ScrollView, Text, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { League, TeamRef } from '@/api/types';
-import { SettingsSection } from '@/components/settings';
+import { SettingsRow, SettingsSection } from '@/components/settings';
 import { leagueLabel, usePalette } from '@/constants/theme';
 import { getLeagueTeams } from '@/data/teams';
 import { favoriteKey, useEnabledLeagues, useSettingsStore } from '@/settings';
@@ -83,39 +83,37 @@ function LeagueFavorites({
   }, [openingFavSet, league]);
 
   return (
-    <View className="mt-4">
-      <Pressable
-        onPress={onToggleExpanded}
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-        className="mb-1.5 ml-1 flex-row items-center gap-1.5"
-        style={({ pressed }) => (pressed ? { opacity: 0.6 } : null)}
-      >
-        <Ionicons
-          name={expanded ? 'chevron-down' : 'chevron-forward'}
-          size={13}
-          color={palette.inkDim}
-        />
-        <Text className="font-display-md text-[12px] uppercase tracking-wider text-ink-dim">
-          {leagueLabel[league]}
-        </Text>
-        {favCount > 0 ? (
-          <Text className="font-mono-rg text-[11px] text-ink-faint">{favCount}</Text>
-        ) : null}
-      </Pressable>
-      {expanded ? (
-        <SettingsSection>
-          {ordered.map((team) => (
+    <SettingsSection>
+      <SettingsRow
+        label={leagueLabel[league]}
+        onPress={() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          onToggleExpanded();
+        }}
+        right={
+          <View className="flex-row items-center gap-1">
+            {favCount > 0 ? (
+              <Text className="font-mono-md text-[12px] text-ink-dim">{favCount}</Text>
+            ) : null}
+            <Ionicons
+              name={expanded ? 'chevron-down' : 'chevron-forward'}
+              size={16}
+              color={palette.inkFaint}
+            />
+          </View>
+        }
+      />
+      {expanded
+        ? ordered.map((team) => (
             <TeamRow
               key={team.id}
               team={team}
               favorited={favSet.has(favoriteKey(league, team.id))}
               onToggle={() => toggleFavorite(favoriteKey(league, team.id))}
             />
-          ))}
-        </SettingsSection>
-      ) : null}
-    </View>
+          ))
+        : null}
+    </SettingsSection>
   );
 }
 
@@ -134,10 +132,7 @@ export default function FavoritesScreen() {
           key={league}
           league={league}
           expanded={openLeague === league}
-          onToggleExpanded={() => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            setOpenLeague((cur) => (cur === league ? null : league));
-          }}
+          onToggleExpanded={() => setOpenLeague((cur) => (cur === league ? null : league))}
         />
       ))}
       <Text className="mt-3 ml-1 font-mono-rg text-[11px] leading-4 text-ink-faint">
