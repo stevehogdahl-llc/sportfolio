@@ -42,6 +42,12 @@ export interface Game {
   competitors: [TeamSide, TeamSide];
   /** pregame betting line; null when the feed has none (always null once a game starts) */
   odds?: GameOdds | null;
+  /**
+   * Live bases/count (MLB) or down & distance (NFL). Only the scoreboard feed
+   * carries the full block, so this is populated by `normalizeScoreboard`;
+   * null unless `state === 'in'`.
+   */
+  situation: Situation | null;
 }
 
 export interface PeriodScore {
@@ -60,6 +66,20 @@ export interface Leader {
   statLine: string;
 }
 
+/** The batter or pitcher in the current MLB matchup. */
+export interface PlayerBrief {
+  /** full name, e.g. "Aaron Judge" */
+  name: string;
+  /** ESPN headshot URL; null when the feed omits it */
+  headshot: string | null;
+  /** roster position, e.g. "RF" / "SP" */
+  position: string | null;
+  /** jersey number as a string, e.g. "99" */
+  jersey: string | null;
+  /** today's line so far, e.g. "0-1, BB, K" or "5.2 IP, 0 ER, 2 H, 6 K" */
+  line: string | null;
+}
+
 /**
  * Live game state, present only while `state === 'in'`. One shape covers both
  * sports; the `kind` field says which half is meaningful.
@@ -76,6 +96,10 @@ export interface Situation {
   onFirst: boolean;
   onSecond: boolean;
   onThird: boolean;
+  /** batter at the plate; null between innings */
+  batter: PlayerBrief | null;
+  /** current pitcher; null between innings */
+  pitcher: PlayerBrief | null;
 
   // football
   /** e.g. "2nd & 7"; null on kickoffs / extra points */
@@ -97,8 +121,6 @@ export interface GameDetail extends Game {
   currentPeriod: number | null;
   leaders: Leader[];
   venue: string | null;
-  /** live bases/count (MLB) or down & distance (NFL); null unless in progress */
-  situation: Situation | null;
 }
 
 /** A team as listed in ESPN's league directory — used for the favorites picker. */

@@ -20,7 +20,7 @@ normalized types.
 ---
 
 ## Game detail screen
-
+### Tag: Your scores. Your way.
 ### [x] 1. Live situation strip — Effort M
 
 Show the live game state above the line score while `state === 'in'`:

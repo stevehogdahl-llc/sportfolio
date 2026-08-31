@@ -4,13 +4,12 @@ import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { League } from '@/api/types';
+import { GameHeaderCard } from '@/components/GameHeaderCard';
 import { LeaderRow } from '@/components/LeaderRow';
-import { LinescoreTable } from '@/components/LinescoreTable';
 import { SituationStrip } from '@/components/SituationStrip';
 import { ErrorState, LoadingState } from '@/components/States';
-import { StatusPill } from '@/components/StatusPill';
-import { TeamRow } from '@/components/TeamRow';
 import { useGameDetail } from '@/hooks/useGameDetail';
+import { useScoreboard } from '@/hooks/useScoreboard';
 
 const isLeague = (v: unknown): v is League => v === 'mlb' || v === 'nfl';
 
@@ -32,6 +31,15 @@ export function GameDetailScreen() {
   const id = typeof params.id === 'string' ? params.id : '';
 
   const q = useGameDetail(league, id);
+  // The live bases/count block only comes on the scoreboard feed; pull it from
+  // the same (polling) query the league tab uses and match this game by id. Take
+  // the run total from that same object so bases and score move together.
+  const sb = useScoreboard(league);
+  const sbGame = sb.data?.find((game) => game.id === id) ?? null;
+  const liveSituation = sbGame?.situation ?? null;
+  const runTotal = sbGame
+    ? (sbGame.competitors[0].score ?? 0) + (sbGame.competitors[1].score ?? 0)
+    : 0;
 
   const frame = (children: ReactNode, title = 'Game') => (
     <>
@@ -54,38 +62,13 @@ export function GameDetailScreen() {
 
   const g = q.data;
   const [away, home] = g.competitors;
-  const awayDim = g.state === 'post' && home.isWinner;
-  const homeDim = g.state === 'post' && away.isWinner;
 
   return frame(
     <>
-      <View className="rounded-[12px] border border-line bg-surface p-4">
-        <View className="mb-3 flex-row items-center justify-between">
-          <StatusPill state={g.state} shortDetail={g.shortDetail} startDate={g.startDate} />
-          {g.venue ? (
-            <Text numberOfLines={1} className="ml-3 flex-1 text-right font-mono-rg text-[10px] text-ink-faint">
-              {g.venue}
-            </Text>
-          ) : null}
-        </View>
-        <TeamRow side={away} dim={awayDim} scoreSize={30} />
-        <TeamRow side={home} dim={homeDim} scoreSize={30} />
-      </View>
+      <GameHeaderCard game={g} />
 
-      {g.state === 'in' && g.situation ? (
-        <SituationStrip league={g.league} situation={g.situation} />
-      ) : null}
-
-      {g.periods.length > 0 ? (
-        <Section title="Line Score">
-          <LinescoreTable
-            periods={g.periods}
-            periodLabel={g.periodLabel}
-            away={away}
-            home={home}
-            currentPeriod={g.currentPeriod}
-          />
-        </Section>
+      {g.state === 'in' && liveSituation ? (
+        <SituationStrip league={g.league} situation={liveSituation} runTotal={runTotal} />
       ) : null}
 
       {g.leaders.length > 0 ? (
