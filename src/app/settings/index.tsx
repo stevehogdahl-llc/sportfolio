@@ -57,33 +57,6 @@ export default function SettingsHub() {
       className="flex-1 bg-background"
       contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32 }}
     >
-      <SettingsSection title="Appearance">
-        <SettingsSwitch
-          label="Team records"
-          sublabel="Show win–loss next to team names"
-          value={showRecords}
-          onValueChange={setShowRecords}
-        />
-        <SettingsSwitch
-          label="Betting odds"
-          sublabel="Show the spread and over/under on upcoming games"
-          value={showOdds}
-          onValueChange={setShowOdds}
-        />
-        <SettingsSegmented
-          label="Card density"
-          options={DENSITY_OPTIONS}
-          value={cardDensity}
-          onChange={setCardDensity}
-        />
-        <SettingsSegmented
-          label="Theme"
-          options={THEME_OPTIONS}
-          value={theme}
-          onChange={setTheme}
-        />
-      </SettingsSection>
-
       <SettingsSection title="Scoreboard">
         <SettingsSegmented
           label="Open to"
@@ -101,8 +74,38 @@ export default function SettingsHub() {
           value={favoritesCount > 0 ? String(favoritesCount) : 'None'}
           onPress={() => router.push('/settings/favorites')}
         />
+        <SettingsSwitch
+          label="Team records"
+          sublabel="Show win–loss next to team names"
+          value={showRecords}
+          onValueChange={setShowRecords}
+        />
+        <SettingsSwitch
+          label="Betting odds"
+          sublabel="Show the spread and over/under on upcoming games"
+          value={showOdds}
+          onValueChange={setShowOdds}
+        />
+      </SettingsSection>
+
+      <SettingsSection title="Appearance">
+        <SettingsSegmented
+          label="Card density"
+          options={DENSITY_OPTIONS}
+          value={cardDensity}
+          onChange={setCardDensity}
+        />
+        <SettingsSegmented
+          label="Theme"
+          options={THEME_OPTIONS}
+          value={theme}
+          onChange={setTheme}
+        />
+      </SettingsSection>
+
+      <SettingsSection title="Notifications">
         <SettingsLink
-          label="Notifications"
+          label="Game alerts"
           value={notificationsOn ? 'On' : 'Off'}
           onPress={() => router.push('/settings/notifications')}
         />
