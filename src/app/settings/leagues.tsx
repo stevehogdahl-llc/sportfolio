@@ -3,8 +3,16 @@ import { Pressable, Switch, Text, View } from 'react-native';
 import ReorderableList, { reorderItems, useReorderableDrag } from 'react-native-reorderable-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SettingsSegmented } from '@/components/settings';
 import { tabLabel, usePalette } from '@/constants/theme';
 import { ALL_TABS, isLeagueTab, type TabKey, useSettingsStore } from '@/settings';
+
+const OPEN_TO_OPTIONS = [
+  { value: 'last', label: 'Last' },
+  { value: 'mlb', label: 'MLB' },
+  { value: 'nfl', label: 'NFL' },
+  { value: 'favorites', label: 'Favorites' },
+] as const;
 
 const ROW = 'min-h-[52px] flex-row items-center justify-between bg-surface px-3.5 py-2.5';
 const HANDLE_WIDTH = 22;
@@ -70,6 +78,13 @@ export default function TabsScreen() {
   const palette = usePalette();
   const tabs = useSettingsStore((s) => s.tabs);
   const setTabs = useSettingsStore((s) => s.setTabs);
+  const openTo = useSettingsStore((s) => s.openTo);
+  const setOpenTo = useSettingsStore((s) => s.setOpenTo);
+
+  // Only offer "Favorites" as a landing tab while that tab is enabled.
+  const openToOptions = tabs.includes('favorites')
+    ? OPEN_TO_OPTIONS
+    : OPEN_TO_OPTIONS.filter((o) => o.value !== 'favorites');
 
   const disabled = ALL_TABS.filter((t) => !tabs.includes(t));
   const leagueCount = tabs.filter(isLeagueTab).length;
@@ -123,6 +138,18 @@ export default function TabsScreen() {
       <Text className="mt-1.5 ml-1 font-mono-rg text-[11px] leading-4 text-ink-faint">
         Turn a tab off to hide it. Drag to set the order.
       </Text>
+
+      <Text className="mb-1.5 ml-1 mt-6 font-display-md text-[12px] uppercase tracking-wider text-ink-dim">
+        Open to
+      </Text>
+      <View className="overflow-hidden rounded-[12px] border border-line bg-surface">
+        <SettingsSegmented
+          label="Tab shown on launch"
+          options={openToOptions}
+          value={openTo}
+          onChange={setOpenTo}
+        />
+      </View>
     </View>
   );
 }

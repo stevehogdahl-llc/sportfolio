@@ -22,13 +22,6 @@ const DENSITY_OPTIONS = [
   { value: 'compact', label: 'Compact' },
 ] as const;
 
-const OPEN_TO_OPTIONS = [
-  { value: 'last', label: 'Last' },
-  { value: 'mlb', label: 'MLB' },
-  { value: 'nfl', label: 'NFL' },
-  { value: 'favorites', label: 'Favorites' },
-] as const;
-
 export default function SettingsHub() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -37,7 +30,6 @@ export default function SettingsHub() {
   const cardDensity = useSettingsStore((s) => s.cardDensity);
   const showRecords = useSettingsStore((s) => s.showRecords);
   const showOdds = useSettingsStore((s) => s.showOdds);
-  const openTo = useSettingsStore((s) => s.openTo);
   const tabs = useSettingsStore((s) => s.tabs);
   const favoritesCount = useSettingsStore((s) => s.favorites.length);
   const notificationsOn = useSettingsStore((s) => s.notifications.enabled);
@@ -45,12 +37,6 @@ export default function SettingsHub() {
   const setCardDensity = useSettingsStore((s) => s.setCardDensity);
   const setShowRecords = useSettingsStore((s) => s.setShowRecords);
   const setShowOdds = useSettingsStore((s) => s.setShowOdds);
-  const setOpenTo = useSettingsStore((s) => s.setOpenTo);
-
-  // Only offer "Favorites" as a landing tab while that tab is enabled.
-  const openToOptions = tabs.includes('favorites')
-    ? OPEN_TO_OPTIONS
-    : OPEN_TO_OPTIONS.filter((o) => o.value !== 'favorites');
 
   return (
     <ScrollView
@@ -58,12 +44,6 @@ export default function SettingsHub() {
       contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32 }}
     >
       <SettingsSection title="Scoreboard">
-        <SettingsSegmented
-          label="Open to"
-          options={openToOptions}
-          value={openTo}
-          onChange={setOpenTo}
-        />
         <SettingsLink
           label="Tabs"
           value={tabs.map((t) => tabLabel[t]).join(', ')}
