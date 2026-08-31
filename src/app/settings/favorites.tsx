@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { useMemo } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { LayoutAnimation, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { League, TeamRef } from '@/api/types';
@@ -51,11 +51,24 @@ function TeamRow({
   );
 }
 
-function LeagueFavorites({ league }: { league: League }) {
+function LeagueFavorites({
+  league,
+  expanded,
+  onToggleExpanded,
+}: {
+  league: League;
+  expanded: boolean;
+  onToggleExpanded: () => void;
+}) {
+  const palette = usePalette();
   const favorites = useSettingsStore((s) => s.favorites);
   const toggleFavorite = useSettingsStore((s) => s.toggleFavorite);
 
   const favSet = useMemo(() => new Set(favorites), [favorites]);
+  const favCount = useMemo(
+    () => getLeagueTeams(league).filter((t) => favSet.has(favoriteKey(league, t.id))).length,
+    [favSet, league],
+  );
 
   // Favorited teams first, otherwise the bundled list's alphabetical order.
   const ordered = useMemo(() => {
@@ -65,22 +78,46 @@ function LeagueFavorites({ league }: { league: League }) {
   }, [favSet, league]);
 
   return (
-    <SettingsSection title={leagueLabel[league]}>
-      {ordered.map((team) => (
-        <TeamRow
-          key={team.id}
-          team={team}
-          favorited={favSet.has(favoriteKey(league, team.id))}
-          onToggle={() => toggleFavorite(favoriteKey(league, team.id))}
+    <View className="mt-4">
+      <Pressable
+        onPress={onToggleExpanded}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        className="mb-1.5 ml-1 flex-row items-center gap-1.5"
+        style={({ pressed }) => (pressed ? { opacity: 0.6 } : null)}
+      >
+        <Ionicons
+          name={expanded ? 'chevron-down' : 'chevron-forward'}
+          size={13}
+          color={palette.inkDim}
         />
-      ))}
-    </SettingsSection>
+        <Text className="font-display-md text-[12px] uppercase tracking-wider text-ink-dim">
+          {leagueLabel[league]}
+        </Text>
+        {favCount > 0 ? (
+          <Text className="font-mono-rg text-[11px] text-ink-faint">{favCount}</Text>
+        ) : null}
+      </Pressable>
+      {expanded ? (
+        <SettingsSection>
+          {ordered.map((team) => (
+            <TeamRow
+              key={team.id}
+              team={team}
+              favorited={favSet.has(favoriteKey(league, team.id))}
+              onToggle={() => toggleFavorite(favoriteKey(league, team.id))}
+            />
+          ))}
+        </SettingsSection>
+      ) : null}
+    </View>
   );
 }
 
 export default function FavoritesScreen() {
   const insets = useSafeAreaInsets();
   const enabled = useEnabledLeagues();
+  const [openLeague, setOpenLeague] = useState<League | null>(enabled[0] ?? null);
 
   return (
     <ScrollView
@@ -88,7 +125,15 @@ export default function FavoritesScreen() {
       contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32 }}
     >
       {enabled.map((league) => (
-        <LeagueFavorites key={league} league={league} />
+        <LeagueFavorites
+          key={league}
+          league={league}
+          expanded={openLeague === league}
+          onToggleExpanded={() => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setOpenLeague((cur) => (cur === league ? null : league));
+          }}
+        />
       ))}
       <Text className="mt-3 ml-1 font-mono-rg text-[11px] leading-4 text-ink-faint">
         Favorite teams float to the top of the scoreboard and power the &quot;My Teams&quot; filter.
