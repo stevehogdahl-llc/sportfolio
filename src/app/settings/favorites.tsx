@@ -135,9 +135,6 @@ export default function FavoritesScreen() {
           onToggleExpanded={() => setOpenLeague((cur) => (cur === league ? null : league))}
         />
       ))}
-      <Text className="mt-3 ml-1 font-mono-rg text-[11px] leading-4 text-ink-faint">
-        Favorite teams float to the top of the scoreboard and power the &quot;My Teams&quot; filter.
-      </Text>
     </ScrollView>
   );
 }
